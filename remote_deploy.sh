@@ -42,8 +42,10 @@ log_info "[1/5] Opening GCP Firewall port ${PORT} to public ingress..."
 # Create firewall rule allowing port 5010 for instances tagged with proxy-pool
 gcloud compute firewall-rules create "allow-proxy-pool-${PORT}" \
     --allow="tcp:${PORT}" \
+    --source-ranges="0.0.0.0/0" \
     --target-tags="proxy-pool" \
     --description="Allow public ingress traffic on port ${PORT} for ProxyPool" &>/dev/null || log_warn "Firewall rule 'allow-proxy-pool-${PORT}' already exists or updated."
+
 
 # Add network tag proxy-pool to the VM instance
 gcloud compute instances add-tags "${INSTANCE_NAME}" \

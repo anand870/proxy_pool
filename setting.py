@@ -42,12 +42,14 @@ GUNICORN_THREADS = 2
 LOG_LEVEL = "INFO"
 
 
+import os
+
 # ############### database config ###################
 # db connection uri
 # example:
 #      Redis: redis://:password@ip:port/db
 #      Ssdb:  ssdb://:password@ip:port
-DB_CONN = 'redis://:pwdstring@127.0.0.1:6379/0'
+DB_CONN = os.getenv('DB_CONN', 'redis://127.0.0.1:6379/0')
 
 # proxy table name
 TABLE_NAME = 'use_proxy'

@@ -62,19 +62,23 @@ class LogHandler(logging.Logger):
         :param level:
         :return:
         """
-        file_name = os.path.join(LOG_PATH, '{name}.log'.format(name=self.name))
-        # 设置日志回滚, 保存在log目录, 一天保存一个文件, 保留15天
-        file_handler = TimedRotatingFileHandler(filename=file_name, when='D', interval=1, backupCount=15)
-        file_handler.suffix = '%Y%m%d.log'
-        if not level:
-            file_handler.setLevel(self.level)
-        else:
-            file_handler.setLevel(level)
-        formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
+        try:
+            file_name = os.path.join(LOG_PATH, '{name}.log'.format(name=self.name))
+            # 设置日志回滚, 保存在log目录, 一天保存一个文件, 保留15天
+            file_handler = TimedRotatingFileHandler(filename=file_name, when='D', interval=1, backupCount=15)
+            file_handler.suffix = '%Y%m%d.log'
+            if not level:
+                file_handler.setLevel(self.level)
+            else:
+                file_handler.setLevel(level)
+            formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
 
-        file_handler.setFormatter(formatter)
-        self.file_handler = file_handler
-        self.addHandler(file_handler)
+            file_handler.setFormatter(formatter)
+            self.file_handler = file_handler
+            self.addHandler(file_handler)
+        except (PermissionError, OSError):
+            pass
+
 
     def __setStreamHandler__(self, level=None):
         """
