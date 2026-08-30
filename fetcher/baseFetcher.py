@@ -24,6 +24,8 @@ class BaseFetcher(object):
 
     # ---- 子类可覆盖 ----
     enabled = True   # 是否启用，设为 False 可禁用该源
+    is_residential = False  # 是否为住宅代理源
+
 
     def fetch(self):
         """爬取代理，yield "host:port" 字符串"""

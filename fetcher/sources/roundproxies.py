@@ -25,6 +25,8 @@ class RoundProxiesFetcher(BaseFetcher):
     url = "https://roundproxies.com/free-proxy-list"
 
     enabled = True
+    is_residential = True
+
 
     def fetch(self):
         page_size = 50

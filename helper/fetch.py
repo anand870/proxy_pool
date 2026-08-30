@@ -101,19 +101,35 @@ class _ThreadFetcher(Thread):
 
     def run(self):
         fetcher_name = self.fetcher_class.name
+        fetcher_instance = self.fetcher_class()
+        fetcher_is_res = getattr(self.fetcher_class, 'is_residential', False) or getattr(fetcher_instance, 'is_residential', False)
         self.log.info("ProxyFetch - {func}: start".format(func=fetcher_name))
         try:
-            for proxy in self.fetcher_class().fetch():
-                self.log.info('ProxyFetch - %s: %s ok' % (fetcher_name, proxy.ljust(23)))
-                proxy = proxy.strip()
-                if proxy in self.proxy_dict:
-                    self.proxy_dict[proxy].add_source(fetcher_name)
+            for item in fetcher_instance.fetch():
+                res_flag = fetcher_is_res
+                if isinstance(item, Proxy):
+                    proxy_str = item.proxy
+                    res_flag = item.is_residential or fetcher_is_res
+                elif isinstance(item, tuple) and len(item) >= 2:
+                    proxy_str = item[0]
+                    if isinstance(item[1], dict):
+                        res_flag = item[1].get("is_residential", fetcher_is_res)
                 else:
-                    self.proxy_dict[proxy] = Proxy(
-                        proxy, source=fetcher_name)
+                    proxy_str = str(item)
+
+                proxy_str = proxy_str.strip()
+                self.log.info('ProxyFetch - %s: %s ok' % (fetcher_name, proxy_str.ljust(23)))
+                if proxy_str in self.proxy_dict:
+                    self.proxy_dict[proxy_str].add_source(fetcher_name)
+                    if res_flag:
+                        self.proxy_dict[proxy_str].is_residential = True
+                else:
+                    self.proxy_dict[proxy_str] = Proxy(
+                        proxy_str, source=fetcher_name, is_residential=res_flag)
         except Exception as e:
             self.log.error("ProxyFetch - {func}: error".format(func=fetcher_name))
             self.log.error(str(e))
+
 
 
 class Fetcher(object):

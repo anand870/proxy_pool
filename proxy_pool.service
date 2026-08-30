@@ -1,0 +1,18 @@
+[Unit]
+Description=ProxyPool Production Service (GCP Compute Engine e2-micro Free Tier)
+After=network.target redis-server.service redis.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/proxy_pool
+Environment="PATH=/opt/proxy_pool/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+EnvironmentFile=-/opt/proxy_pool/.env
+ExecStart=/opt/proxy_pool/venv/bin/bash proxy_pool.sh start --fg
+ExecStop=/opt/proxy_pool/venv/bin/bash proxy_pool.sh stop
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+MemoryMax=350M
+
+[Install]
+WantedBy=multi-user.target

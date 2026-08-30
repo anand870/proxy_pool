@@ -26,22 +26,23 @@ class ProxyHandler(object):
         self.db = DbClient(self.conf.dbConn)
         self.db.changeTable(self.conf.tableName)
 
-    def get(self, https=False):
+    def get(self, https=False, residential=False):
         """
         return a proxy
         Args:
             https: True/False
+            residential: True/False
         Returns:
         """
-        proxy = self.db.get(https)
+        proxy = self.db.get(https=https, residential=residential)
         return Proxy.createFromJson(proxy) if proxy else None
 
-    def pop(self, https):
+    def pop(self, https=False, residential=False):
         """
         return and delete a useful proxy
         :return:
         """
-        proxy = self.db.pop(https)
+        proxy = self.db.pop(https=https, residential=residential)
         if proxy:
             return Proxy.createFromJson(proxy)
         return None
@@ -61,13 +62,14 @@ class ProxyHandler(object):
         """
         return self.db.delete(proxy.proxy)
 
-    def getAll(self, https=False):
+    def getAll(self, https=False, residential=False):
         """
         get all proxy from pool as Proxy list
         :return:
         """
-        proxies = self.db.getAll(https)
+        proxies = self.db.getAll(https=https, residential=residential)
         return [Proxy.createFromJson(_) for _ in proxies]
+
 
     def exists(self, proxy):
         """

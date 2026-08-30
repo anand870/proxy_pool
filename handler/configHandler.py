@@ -33,6 +33,22 @@ class ConfigHandler(withMetaclass(Singleton)):
         return os.environ.get("PORT", setting.PORT)
 
     @LazyProperty
+    def authToken(self):
+        return os.getenv("AUTH_TOKEN", getattr(setting, "AUTH_TOKEN", ""))
+
+    @LazyProperty
+    def gunicornWorkers(self):
+        return int(os.getenv("GUNICORN_WORKERS", getattr(setting, "GUNICORN_WORKERS", 2)))
+
+    @LazyProperty
+    def gunicornThreads(self):
+        return int(os.getenv("GUNICORN_THREADS", getattr(setting, "GUNICORN_THREADS", 2)))
+
+    @LazyProperty
+    def logLevel(self):
+        return os.getenv("LOG_LEVEL", getattr(setting, "LOG_LEVEL", "INFO"))
+
+    @LazyProperty
     def dbConn(self):
         return os.getenv("DB_CONN", setting.DB_CONN)
 

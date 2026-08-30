@@ -32,6 +32,16 @@ HOST = "0.0.0.0"
 
 PORT = 5010
 
+# API token authentication system (Empty string disabled, set string to enable)
+AUTH_TOKEN = ""
+
+# Gunicorn production options (Optimized for GCP Compute Engine e2-micro Free Tier)
+
+GUNICORN_WORKERS = 2
+GUNICORN_THREADS = 2
+LOG_LEVEL = "INFO"
+
+
 # ############### database config ###################
 # db connection uri
 # example:

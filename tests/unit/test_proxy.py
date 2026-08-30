@@ -31,6 +31,7 @@ class TestProxyInit:
         assert p.last_status == ""
         assert p.last_time == ""
         assert p.https is False
+        assert p.is_residential is False
 
     def test_custom_values(self):
         p = Proxy(
@@ -43,6 +44,7 @@ class TestProxyInit:
             last_status=True,
             last_time="2024-01-01 00:00:00",
             https=True,
+            is_residential=True,
         )
         assert p.proxy == "5.6.7.8:443"
         assert p.fail_count == 3
@@ -53,6 +55,8 @@ class TestProxyInit:
         assert p.last_status is True
         assert p.last_time == "2024-01-01 00:00:00"
         assert p.https is True
+        assert p.is_residential is True
+
 
     def test_source_with_slash(self):
         """source 含 / 时应被拆分为列表，读回时用 / 连接"""
@@ -67,7 +71,8 @@ class TestProxySerialization:
         p = Proxy("1.2.3.4:8080")
         d = p.to_dict
         expected_keys = {"proxy", "https", "fail_count", "region", "anonymous",
-                         "source", "check_count", "last_status", "last_time"}
+                         "source", "check_count", "last_status", "last_time", "is_residential"}
+
         assert set(d.keys()) == expected_keys
 
     def test_to_dict_values(self):

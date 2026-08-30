@@ -7,11 +7,23 @@
 | 接口 | 方法 | 说明 | 参数 |
 |------|------|------|------|
 | `/` | GET | 返回 API 列表 | 无 |
-| `/get` | GET | 随机返回一个代理 | 可选：`?type=https` 过滤 HTTPS 代理 |
-| `/pop` | GET | 返回并删除一个代理 | 可选：`?type=https` 过滤 HTTPS 代理 |
-| `/all` | GET | 返回所有代理 | 可选：`?type=https` 过滤 HTTPS 代理 |
-| `/count` | GET | 返回代理数量统计 | 无 |
+| `/get` | GET | 随机返回一个代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true` 过滤住宅 IP 代理 |
+| `/pop` | GET | 返回并删除一个代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true` 过滤住宅 IP 代理 |
+| `/all` | GET | 返回所有代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true` 过滤住宅 IP 代理 |
+| `/count` | GET | 返回代理数量统计（含 residential 住宅 IP 统计） | 无 |
 | `/delete` | GET | 删除指定代理 | `?proxy=host:port` |
+
+## 认证与隐私 (Token Authentication & Zero-Log Privacy)
+
+### Token 身份验证
+当在环境变量或 `setting.py` 中配置 `AUTH_TOKEN` 时，所有 API 接口均需携带 Token。支持以下任意一种方式：
+- Header 请求头: `Authorization: Bearer <AUTH_TOKEN>`
+- Header 请求头: `X-API-Token: <AUTH_TOKEN>` 或 `Api-Key: <AUTH_TOKEN>`
+- URL 查询参数: `?token=<AUTH_TOKEN>` 或 `?api_key=<AUTH_TOKEN>`
+
+### 零日志隐私保障 (Zero-Log Privacy)
+为保护请求者隐私，生产模式下已禁用请求者 IP (Client IP) 和 User-Agent 的访问日志记录，绝不留存或打印任何请求者身份特征信息。
+
 
 ## 调用示例
 

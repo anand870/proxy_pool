@@ -48,19 +48,25 @@ class SsdbClient(object):
                                                                    protocol=2,
                                                                    **kwargs))
 
-    def get(self, https):
+    def _filter_proxy(self, proxy_str, https=False, residential=False):
+        try:
+            data = json.loads(proxy_str)
+            if https and not data.get("https"):
+                return False
+            if residential and not (data.get("is_residential") or data.get("residential")):
+                return False
+            return True
+        except Exception:
+            return False
+
+    def get(self, https=False, residential=False):
         """
         从hash中随机返回一个代理
         :return:
         """
-        if https:
-            items_dict = self.__conn.hgetall(self.name)
-            proxies = list(filter(lambda x: json.loads(x).get("https"), items_dict.values()))
-            return choice(proxies) if proxies else None
-        else:
-            proxies = self.__conn.hkeys(self.name)
-            proxy = choice(proxies) if proxies else None
-            return self.__conn.hget(self.name, proxy) if proxy else None
+        items_dict = self.__conn.hgetall(self.name)
+        proxies = [x for x in items_dict.values() if self._filter_proxy(x, https=https, residential=residential)]
+        return choice(proxies) if proxies else None
 
     def put(self, proxy_obj):
         """
@@ -71,12 +77,12 @@ class SsdbClient(object):
         result = self.__conn.hset(self.name, proxy_obj.proxy, proxy_obj.to_json)
         return result
 
-    def pop(self, https):
+    def pop(self, https=False, residential=False):
         """
         顺序弹出一个代理
         :return: proxy
         """
-        proxy = self.get(https)
+        proxy = self.get(https=https, residential=residential)
         if proxy:
             self.__conn.hdel(self.name, json.loads(proxy).get("proxy", ""))
         return proxy if proxy else None
@@ -105,16 +111,13 @@ class SsdbClient(object):
         """
         self.__conn.hset(self.name, proxy_obj.proxy, proxy_obj.to_json)
 
-    def getAll(self, https):
+    def getAll(self, https=False, residential=False):
         """
         字典形式返回所有代理, 使用changeTable指定hash name
         :return:
         """
         item_dict = self.__conn.hgetall(self.name)
-        if https:
-            return list(filter(lambda x: json.loads(x).get("https"), item_dict.values()))
-        else:
-            return item_dict.values()
+        return [x for x in item_dict.values() if self._filter_proxy(x, https=https, residential=residential)]
 
     def clear(self):
         """
@@ -128,8 +131,19 @@ class SsdbClient(object):
         返回代理数量
         :return:
         """
-        proxies = self.getAll(https=False)
-        return {'total': len(proxies), 'https': len(list(filter(lambda x: json.loads(x).get("https"), proxies)))}
+        item_dict = self.__conn.hgetall(self.name)
+        parsed = []
+        for x in item_dict.values():
+            try:
+                parsed.append(json.loads(x))
+            except Exception:
+                pass
+        return {
+            'total': len(parsed),
+            'https': len([p for p in parsed if p.get("https")]),
+            'residential': len([p for p in parsed if p.get("is_residential") or p.get("residential")])
+        }
+
 
     def changeTable(self, name):
         """

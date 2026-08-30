@@ -18,16 +18,17 @@ import json
 class Proxy(object):
 
     def __init__(self, proxy, fail_count=0, region="", anonymous="",
-                 source="", check_count=0, last_status="", last_time="", https=False):
+                 source="", check_count=0, last_status="", last_time="", https=False, is_residential=False):
         self._proxy = proxy
         self._fail_count = fail_count
         self._region = region
         self._anonymous = anonymous
-        self._source = source.split('/')
+        self._source = source.split('/') if isinstance(source, str) else source
         self._check_count = check_count
         self._last_status = last_status
         self._last_time = last_time
         self._https = https
+        self._is_residential = is_residential
 
     @classmethod
     def createFromJson(cls, proxy_json):
@@ -40,7 +41,8 @@ class Proxy(object):
                    check_count=_dict.get("check_count", 0),
                    last_status=_dict.get("last_status", ""),
                    last_time=_dict.get("last_time", ""),
-                   https=_dict.get("https", False)
+                   https=_dict.get("https", False),
+                   is_residential=_dict.get("is_residential", _dict.get("residential", False))
                    )
 
     @property
@@ -89,6 +91,11 @@ class Proxy(object):
         return self._https
 
     @property
+    def is_residential(self):
+        """ 是否为住宅IP """
+        return self._is_residential
+
+    @property
     def to_dict(self):
         """ 属性字典 """
         return {"proxy": self.proxy,
@@ -99,7 +106,8 @@ class Proxy(object):
                 "source": self.source,
                 "check_count": self.check_count,
                 "last_status": self.last_status,
-                "last_time": self.last_time}
+                "last_time": self.last_time,
+                "is_residential": self.is_residential}
 
     @property
     def to_json(self):
@@ -126,6 +134,10 @@ class Proxy(object):
     def https(self, value):
         self._https = value
 
+    @is_residential.setter
+    def is_residential(self, value):
+        self._is_residential = bool(value)
+
     @region.setter
     def region(self, value):
         self._region = value
@@ -134,3 +146,4 @@ class Proxy(object):
         if source_str:
             self._source.append(source_str)
             self._source = list(set(self._source))
+

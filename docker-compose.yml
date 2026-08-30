@@ -1,14 +1,30 @@
-version: '2'
+version: '3.8'
+
 services:
   proxy_pool:
     build: .
     container_name: proxy_pool
+    restart: always
     ports:
       - "5010:5010"
-    links:
+    depends_on:
       - proxy_redis
     environment:
       DB_CONN: "redis://@proxy_redis:6379/0"
+      AUTH_TOKEN: "${AUTH_TOKEN:-}"
+      GUNICORN_WORKERS: "2"
+      GUNICORN_THREADS: "2"
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+
   proxy_redis:
-    image: "redis"
+    image: "redis:alpine"
     container_name: proxy_redis
+    restart: always
+    command: redis-server --save "" --appendonly no
+    deploy:
+      resources:
+        limits:
+          memory: 150M
