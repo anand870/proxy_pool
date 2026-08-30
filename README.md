@@ -1,13 +1,10 @@
+# ProxyPool - Production-Ready Crawler Proxy IP Pool
 
-ProxyPool 爬虫代理IP池
-=======
-[![Tests](https://github.com/jhao104/proxy_pool/actions/workflows/test.yml/badge.svg)](https://github.com/jhao104/proxy_pool/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/jhao104/proxy_pool/graph/badge.svg?token=8WHGkrQA6E)](https://codecov.io/gh/jhao104/proxy_pool)
-[![](https://img.shields.io/badge/Powered%20by-@j_hao104-green.svg)](http://www.spiderpy.cn/blog/)
-[![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://github.com/jhao104/proxy_pool/blob/master/LICENSE)
-[![GitHub contributors](https://img.shields.io/github/contributors/jhao104/proxy_pool.svg)](https://github.com/jhao104/proxy_pool/graphs/contributors)
-[![](https://img.shields.io/badge/language-Python-green.svg)](https://github.com/jhao104/proxy_pool)
+[![Tests](https://github.com/anand870/proxy_pool/actions/workflows/test.yml/badge.svg)](https://github.com/anand870/proxy_pool/actions/workflows/test.yml)
+[![Python Version](https://img.shields.io/badge/Python-3.8--3.12-blue.svg)](https://docs.python.org/3/)
+[![License](https://img.shields.io/packagist/l/doctrine/orm.svg)](LICENSE)
 
+```
     ______                        ______             _
     | ___ \_                      | ___ \           | |
     | |_/ / \__ __   __  _ __   _ | |_/ /___   ___  | |
@@ -16,221 +13,274 @@ ProxyPool 爬虫代理IP池
     \_|   |_|  \___/ /_/\_\ \__  |\_|   \___/ \___/ \_____\
                            __ / /
                           /___ /
-
-### ProxyPool
-
-爬虫代理IP池项目,主要功能为定时采集网上发布的免费代理验证入库，定时验证入库的代理保证代理的可用性，提供API和CLI两种使用方式。同时你也可以扩展代理源以增加代理池IP的质量和数量。
-
-* 文档: [document](https://jhao104.github.io/proxy_pool/)
-
-* 支持版本: 
-[![](https://img.shields.io/badge/Python-3.8-blue.svg)](https://docs.python.org/3.8/)
-[![](https://img.shields.io/badge/Python-3.9-blue.svg)](https://docs.python.org/3.9/)
-[![](https://img.shields.io/badge/Python-3.10-blue.svg)](https://docs.python.org/3.10/)
-[![](https://img.shields.io/badge/Python-3.11-blue.svg)](https://docs.python.org/3.11/)
-
-* 测试地址: http://demo.spiderpy.cn (勿压谢谢)
-
-* 付费代理推荐: [亮数据 Bright Data](https://get.brightdata.com/github_jh)（前身 Luminati）.全球代理与网络抓取行业头部领导者。覆盖 195+ 国家的 1.5亿+ 真人住宅IP，亲测成功率极高，轻松突破反爬封锁。需要高质量代理IP的可以注册后联系中文客服。[申请免费试用](https://get.brightdata.com/github_jh) (PS:用不明白的同学可以参考这个[使用教程](https://www.cnblogs.com/jhao/p/15611785.html))。
-
-&emsp;&emsp; 想自建爬虫？接入 [Bright Data MCP Server](https://get.brightdata.com/cd3yy5)，让 Claude、Cursor、Windsurf 等 AI 助手直接实时抓取网页——自动破解验证码、绕过地区限制。[Scraper Studio](https://get.brightdata.com/cd3yy5) 支持 AI 一键生成或 JS 代码定制，全托管基础设施运行，无需自购代理、无需搭服务器，分钟级上线。所有产品底层均由同一套顶级代理网络驱动。
-
-&emsp;&emsp; API 产品现享7折 + 免费试用额度，注册后可联系中文客服快速上手。(用不明白的同学可参考使用教程，或注册后直接使用互动 AI 智能助手)
-👉 [https://get.brightdata.com/cd3yy5](https://get.brightdata.com/cd3yy5)
-
-
-### 运行项目
-
-##### 下载代码:
-
-* git clone
-
-```bash
-git clone https://github.com/jhao104/proxy_pool.git
 ```
 
-* releases
+An automated, high-performance proxy pool for web scrapers and crawlers. It automatically fetches free public proxies, validates their availability on a scheduled basis, persists healthy proxies in Redis/SSDB, and exposes them via a lightweight RESTful API server.
+
+---
+
+## Key Features
+
+- 🚀 **Production Ready for Cloud Free Tiers**: Optimized memory footprint (<300MB) for seamless deployment on **Google Cloud Compute Engine `e2-micro`** and **Oracle Cloud Always Free VM** instances.
+- 🏡 **Residential IP Filtering**: Filter and fetch only residential proxies on-demand (`?residential=true` or `?type=residential`).
+- 🔐 **Token-Based Authentication System**: Protect your API endpoints with configurable token authentication (`Authorization: Bearer <token>`, `X-API-Token`, or `?token=<token>`).
+- 🛡️ **Zero-Log Requestor Privacy**: Strict privacy protection — no client IP addresses, headers, or requestor details are ever logged or retained in log files.
+- ⚡ **Automated Scheduling & Validation**: Built-in APScheduler constantly checks proxy latency, availability, and failure thresholds.
+- 🔌 **Pluggable Architecture**: Modular proxy fetchers with automatic directory discovery and runtime hot-reloading.
+
+---
+
+## Quick Start & Local Setup
+
+### Prerequisites
+- Python 3.8+
+- Redis Server (local or remote)
+
+### Installation
 
 ```bash
-https://github.com/jhao104/proxy_pool/releases 下载对应zip文件
-```
+# Clone the repository
+git clone https://github.com/anand870/proxy_pool.git
+cd proxy_pool
 
-##### 安装依赖:
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-##### 更新配置:
-
-
-```python
-# setting.py 为项目配置文件
-
-# 配置API服务
-
-HOST = "0.0.0.0"               # IP
-PORT = 5000                    # 监听端口
-
-
-# 配置数据库
-
-DB_CONN = 'redis://:pwd@127.0.0.1:8888/0'
-
-
-# 配置代理源（可选）
-# 默认自动扫描 fetcher/sources/ 目录下所有 enabled=True 的代理源
-# 如需禁用某些代理源，在黑名单中添加其 name 即可
-# PROXY_FETCHER_EXCLUDE = ["freevpnnode"]
-```
-
-#### 启动项目:
+### Running Locally
 
 ```bash
-# 如果已经具备运行条件, 可用通过proxyPool.py启动。
-# 程序分为: schedule 调度程序 和 server Api服务
-
-# 启动调度程序
+# Start the proxy scheduler (fetcher & validator daemon)
 python proxyPool.py schedule
 
-# 启动webApi服务
+# Start the Web API server
 python proxyPool.py server
-
 ```
 
-### Docker Image
+---
+
+## Production Deployment (Google Cloud `e2-micro`)
+
+### Method 1: Deploy to Remote GCP VM from Local Machine (One-Command)
+
+Run `remote_deploy.sh` directly from your local terminal. It will connect via SSH to your running GCP `e2-micro` VM, install `git` & dependencies, configure GCP firewall rules for port `5010`, pull code, and start the service:
 
 ```bash
-docker pull jhao104/proxy_pool
+# Basic usage (Target instance name: my-gcp-micro-instance, Zone: us-central1-a)
+./remote_deploy.sh
 
-docker run --env DB_CONN=redis://:password@ip:port/0 -p 5010:5010 jhao104/proxy_pool:latest
+# Deploy with custom instance name, zone, and secret AUTH_TOKEN:
+INSTANCE_NAME="my-proxy-vm" ZONE="us-central1-a" AUTH_TOKEN="my_secret_token_123" ./remote_deploy.sh
 ```
-### docker-compose
 
-项目目录下运行: 
-``` bash
+### Method 2: Deploy Directly on Host Machine (Systemd)
+
+On your GCP Compute Engine VM host instance, run the local deployment script:
+
+```bash
+chmod +x deploy.sh proxy_pool.sh
+./deploy.sh
+```
+This script will:
+1. Create a Python virtual environment (`venv`) and install dependencies.
+2. Generate `.env` configuration template.
+3. Install and register `proxy_pool.service` under `systemd`.
+4. Start the production service via Gunicorn.
+
+```bash
+# Manage via systemd
+sudo systemctl start proxy_pool
+sudo systemctl status proxy_pool
+sudo systemctl stop proxy_pool
+```
+
+### Method 3: Containerized Deployment (Docker & Docker Compose)
+
+```bash
+# Set your token in environment (optional)
+export AUTH_TOKEN="my_secret_token_123"
+
+# Build and launch with memory limits
 docker-compose up -d
 ```
 
-### 使用
+---
 
-* Api
+## Token Authentication
 
-启动web服务后, 默认配置下会开启 http://127.0.0.1:5010 的api接口服务:
+Set `AUTH_TOKEN` in your environment or `.env` file to enable token protection:
 
-| api | method | Description | params|
-| ----| ---- | ---- | ----|
-| / | GET | api介绍 | None |
-| /get | GET | 随机获取一个代理| 可选参数: `?type=https` 过滤支持https的代理|
-| /pop | GET | 获取并删除一个代理| 可选参数: `?type=https` 过滤支持https的代理|
-| /all | GET | 获取所有代理 |可选参数: `?type=https` 过滤支持https的代理|
-| /count | GET | 查看代理数量 |None|
-| /delete | GET | 删除代理  |`?proxy=host:ip`|
+```ini
+AUTH_TOKEN=my_secret_token_123
+```
 
+When enabled, API requests must include the token via any of the following 3 formats:
 
-* 爬虫使用
+1. **HTTP Authorization Header** *(Recommended)*:
+   ```bash
+   curl -H "Authorization: Bearer my_secret_token_123" "http://<SERVER_IP>:5010/get/"
+   ```
+2. **Custom Header**:
+   ```bash
+   curl -H "X-API-Token: my_secret_token_123" "http://<SERVER_IP>:5010/get/"
+   ```
+3. **URL Query Parameter**:
+   ```bash
+   curl "http://<SERVER_IP>:5010/get/?token=my_secret_token_123"
+   ```
 
-　　如果要在爬虫代码中使用的话， 可以将此api封装成函数直接使用，例如：
+*If the token is missing or invalid, the API responds with `HTTP 401 Unauthorized`.*
+
+---
+
+## Residential IP Filtering
+
+Filter and fetch proxies marked as residential IPs using `?residential=true` or `?type=residential`:
+
+- **Fetch a random residential proxy**:
+  ```bash
+  curl "http://127.0.0.1:5010/get/?residential=true"
+  ```
+- **Pop and delete a residential proxy**:
+  ```bash
+  curl "http://127.0.0.1:5010/pop/?residential=true"
+  ```
+- **List all residential proxies**:
+  ```bash
+  curl "http://127.0.0.1:5010/all/?residential=true"
+  ```
+- **Proxy count statistics (including residential count)**:
+  ```bash
+  curl "http://127.0.0.1:5010/count/"
+  # Response: {"http_type": {"http": 10, "https": 5}, "residential": 6, "source": {...}, "count": 15}
+  ```
+
+---
+
+## Zero-Log Requestor Privacy
+
+To ensure complete requestor anonymity:
+- **Werkzeug Logger**: Suppressed HTTP access logging of client IP addresses.
+- **Gunicorn Server**: Configured with `accesslog = None` in production, ensuring client IP (`%(h)s`) and User-Agent (`%(a)s`) are never recorded or written to disk.
+
+---
+
+## RESTful API Reference
+
+| Endpoint | Method | Description | Parameters |
+|----------|--------|-------------|------------|
+| `/` | GET | List available API routes | None |
+| `/get` | GET | Get a random proxy | `type=https`, `residential=true` |
+| `/pop` | GET | Get and delete a proxy | `type=https`, `residential=true` |
+| `/all` | GET | Get all proxies from pool | `type=https`, `residential=true` |
+| `/count` | GET | Get proxy count & statistics | None |
+| `/delete` | GET | Delete an invalid proxy | `proxy=host:port` |
+
+### Usage Example in Python (Scraper Integration)
 
 ```python
 import requests
 
-def get_proxy():
-    return requests.get("http://127.0.0.1:5010/get/").json()
+API_URL = "http://127.0.0.1:5010"
+HEADERS = {"Authorization": "Bearer my_secret_token_123"}
+
+def get_residential_proxy():
+    response = requests.get(f"{API_URL}/get/", params={"residential": "true"}, headers=HEADERS)
+    return response.json().get("proxy")
 
 def delete_proxy(proxy):
-    requests.get("http://127.0.0.1:5010/delete/?proxy={}".format(proxy))
+    requests.get(f"{API_URL}/delete/", params={"proxy": proxy}, headers=HEADERS)
 
-# your spider code
-
-def getHtml():
-    # ....
+def fetch_target_page(url):
     retry_count = 5
-    proxy = get_proxy().get("proxy")
     while retry_count > 0:
+        proxy = get_residential_proxy()
+        if not proxy:
+            break
         try:
-            html = requests.get('http://www.example.com', proxies={"http": "http://{}".format(proxy)})
-            # 使用代理访问
-            return html
+            resp = requests.get(url, proxies={"http": f"http://{proxy}", "https": f"http://{proxy}"}, timeout=10)
+            if resp.status_code == 200:
+                return resp.text
         except Exception:
             retry_count -= 1
-    # 删除代理池中代理
-    delete_proxy(proxy)
+            delete_proxy(proxy)
     return None
 ```
 
-### 扩展代理
+---
 
-　　项目默认包含几个免费的代理获取源，但是免费的毕竟质量有限，所以如果直接运行可能拿到的代理质量不理想。所以，提供了代理获取的扩展方法。
+## Extending Proxy Sources
 
-　　添加一个新的代理源方法如下:
-
-* 1、在 `fetcher/sources/` 目录下新建 `.py` 文件，继承 `BaseFetcher` 基类，声明 `name`/`url`/`enabled` 属性，实现 `fetch()` 方法以生成器(yield)形式返回`host:port`格式的代理，例如:
+Create a new `.py` file in `fetcher/sources/` inheriting from `BaseFetcher`:
 
 ```python
 from fetcher.baseFetcher import BaseFetcher
 from util.webRequest import WebRequest
 
-class MyProxyFetcher(BaseFetcher):
-    """我的代理源"""
-
-    name = "myproxy"
+class CustomFetcher(BaseFetcher):
+    name = "custom_fetcher"
     url = "https://www.example.com/"
     enabled = True
+    is_residential = True  # Tag proxies from this source as residential
 
     def fetch(self):
-        r = WebRequest().get("https://www.example.com/api/proxies")
-        for item in r.json:
-            yield item["ip"] + ":" + item["port"]
+        response = WebRequest().get("https://www.example.com/api/proxies")
+        for item in response.json:
+            yield f"{item['ip']}:{item['port']}"
 ```
 
-* 2、添加好后，`schedule` 进程下次抓取时会自动扫描 `fetcher/sources/` 目录并启用新代理源，无需修改配置。
+The scheduler automatically scans `fetcher/sources/` on the next iteration and enables new fetchers without restarting the application.
 
-　　可用 `python proxyPool.py fetcher` 命令查看当前启用的代理源列表。
+---
 
-　　如需临时禁用某个代理源，在 [setting.py](setting.py) 的 `PROXY_FETCHER_EXCLUDE` 黑名单中添加其 `name` 即可。
+## Supported Public Proxy Sources
 
-### 免费代理源
+| Source Name | Enabled | Residential Tag | File Path |
+|-------------|---------|-----------------|-----------|
+| Geonode | ✔ | Yes | [`geonode.py`](fetcher/sources/geonode.py) |
+| RoundProxies | ✔ | Yes | [`roundproxies.py`](fetcher/sources/roundproxies.py) |
+| Proxifly | ✔ | No | [`proxifly.py`](fetcher/sources/proxifly.py) |
+| Kuaidaili | ✔ | No | [`kuaidaili.py`](fetcher/sources/kuaidaili.py) |
+| Kxdaili | ✔ | No | [`kxdaili.py`](fetcher/sources/kxdaili.py) |
+| IP3366 | ✔ | No | [`ip3366.py`](fetcher/sources/ip3366.py) |
+| Ihuan | ✔ | No | [`ihuan.py`](fetcher/sources/ihuan.py) |
+| IP89 | ✔ | No | [`ip89.py`](fetcher/sources/ip89.py) |
+| DocIP | ✔ | No | [`docip.py`](fetcher/sources/docip.py) |
+| GoodIPs | ✔ | No | [`goodips.py`](fetcher/sources/goodips.py) |
+| Daili66 | ✔ | No | [`daili66.py`](fetcher/sources/daili66.py) |
+| FreeVPNNode | ✔ | No | [`freevpnnode.py`](fetcher/sources/freevpnnode.py) |
 
-   目前实现的采集免费代理网站有(排名不分先后, 下面仅是对其发布的免费代理情况, 付费代理测评可以参考[这里](https://zhuanlan.zhihu.com/p/33576641)):
-   
-  | 代理名称         |  状态  | 更新速度 | 可用率 | 地址                                                | 代码                                                      |
-  |--------------|  ---- |------|-----|---------------------------------------------------|---------------------------------------------------------|
-  | 开心代理         |   ✔   | ★    | *   | [地址](http://www.kxdaili.com/)                     | [`kxdaili.py`](/fetcher/sources/kxdaili.py)             |
-  | 快代理          |  ✔    | ★    | *   | [地址](https://www.kuaidaili.com/)                  | [`kuaidaili.py`](/fetcher/sources/kuaidaili.py)         |
-  | 云代理          |  ✔    | ★    | *   | [地址](http://www.ip3366.net/)                      | [`ip3366.py`](/fetcher/sources/ip3366.py)               |
-  | 小幻代理         |  ✔    | ★    | *   | [地址](https://ip.ihuan.me/)                        | [`ihuan.py`](/fetcher/sources/ihuan.py)                 |
-  | 89代理         |  ✔    | ★★   | **  | [地址](https://www.89ip.cn)                         | [`ip89.py`](/fetcher/sources/ip89.py)                   |
-  | 稻壳代理         |  ✔    | ★★   | *** | [地址](https://www.docip.ne)                        | [`docip.py`](/fetcher/sources/docip.py)                 |
-  | 谷德代理         |  ✔    | ★★   | *** | [地址](https://www.goodips.com)                     | [`goodips.py`](/fetcher/sources/goodips.py)             |
-  | 66代理         |  ✔    | ★★   | *   | [地址](https://www.66daili.com)                     | [`daili66.py`](/fetcher/sources/daili66.py)             |
-  | Proxifly     |  ✔    | ★★   | **  | [地址](https://proxifly.dev)                        | [`proxifly.py`](/fetcher/sources/proxifly.py)           |
-  | FreeVPNNode  |  ✔    | ★★   | *   | [地址](https://cn.freevpnnode.com)                  | [`freevpnnode.py`](/fetcher/sources/freevpnnode.py)     |
-  | Geonode      |  ✔    | ★★   | **  | [地址](https://geonode.com)                         | [`geonode.py`](/fetcher/sources/geonode.py)             |
-  | RoundProxies |  ✔    | ★    | *   | [地址](https://roundproxies.com/free-proxy-list)    | [`roundproxies.py`](/fetcher/sources/roundproxies.py)   |
+---
 
-  
-  如果还有其他好的免费代理网站, 可以在提交在[issues](https://github.com/jhao104/proxy_pool/issues/71), 下次更新时会考虑在项目中支持。
+## Configuration Reference (`setting.py` / `.env`)
 
-### 问题反馈
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HOST` | `0.0.0.0` | API server binding address |
+| `PORT` | `5010` | API server port |
+| `AUTH_TOKEN` | `""` | API token authentication (empty = disabled) |
+| `DB_CONN` | `redis://:pwd@127.0.0.1:6379/0` | DB connection string (Redis or SSDB) |
+| `TABLE_NAME` | `use_proxy` | Database table / hash key name |
+| `GUNICORN_WORKERS` | `2` | Gunicorn worker processes (optimized for 1GB RAM) |
+| `GUNICORN_THREADS` | `2` | Threads per Gunicorn worker |
+| `VERIFY_TIMEOUT` | `10` | Proxy validation timeout in seconds |
+| `POOL_SIZE_MIN` | `20` | Minimum proxy threshold before triggering re-fetch |
+| `TIMEZONE` | `Asia/Shanghai` | Scheduler timezone |
 
-　　任何问题欢迎在[Issues](https://github.com/jhao104/proxy_pool/issues) 中反馈，同时也可以到我的[博客](http://www.spiderpy.cn/blog/message)中留言。
+---
 
-　　你的反馈会让此项目变得更加完美。
+## Running Tests
 
-### 贡献代码
+```bash
+# Run unit & API test suite
+pytest
 
-　　本项目仅作为基本的通用的代理池架构，不接收特有功能(当然,不限于特别好的idea)。
+# View coverage report
+pytest --cov=. --cov-report=term-missing
+```
 
-　　本项目依然不够完善，如果发现bug或有新的功能添加，请在[Issues](https://github.com/jhao104/proxy_pool/issues)中提交bug(或新功能)描述，我会尽力改进，使她更加完美。
+---
 
-　　这里感谢以下contributor的无私奉献：
+## License
 
-　　[@kangnwh](https://github.com/kangnwh) | [@bobobo80](https://github.com/bobobo80) | [@halleywj](https://github.com/halleywj) | [@newlyedward](https://github.com/newlyedward) | [@wang-ye](https://github.com/wang-ye) | [@gladmo](https://github.com/gladmo) | [@bernieyangmh](https://github.com/bernieyangmh) | [@PythonYXY](https://github.com/PythonYXY) | [@zuijiawoniu](https://github.com/zuijiawoniu) | [@netAir](https://github.com/netAir) | [@scil](https://github.com/scil) | [@tangrela](https://github.com/tangrela) | [@highroom](https://github.com/highroom) | [@luocaodan](https://github.com/luocaodan) | [@vc5](https://github.com/vc5) | [@1again](https://github.com/1again) | [@obaiyan](https://github.com/obaiyan) | [@zsbh](https://github.com/zsbh) | [@jiannanya](https://github.com/jiannanya) | [@Jerry12228](https://github.com/Jerry12228) | [@zeyudada](https://github.com/zeyudada)
-
-
-### Release Notes
-
-   [changelog](https://jhao104.github.io/proxy_pool/changelog/)
-
-<a href="https://hellogithub.com/repository/92a066e658d147cc8bd8397a1cb88183" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=92a066e658d147cc8bd8397a1cb88183&claim_uid=DR60NequsjP54Lc" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
