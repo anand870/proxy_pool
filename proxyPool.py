@@ -12,6 +12,9 @@
 """
 __author__ = 'JHao'
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import click
 from helper.launcher import startServer, startScheduler
 from setting import BANNER, VERSION
