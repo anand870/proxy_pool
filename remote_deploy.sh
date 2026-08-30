@@ -11,6 +11,7 @@ ZONE="${2:-${ZONE:-us-central1-a}}"
 GIT_REPO_URL="${3:-${GIT_REPO_URL:-https://github.com/anand870/proxy_pool.git}}"
 TARGET_DIR="${TARGET_DIR:-/opt/proxy_pool}"
 AUTH_TOKEN="${AUTH_TOKEN:-}"
+PORT="${PORT:-5010}"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -27,6 +28,7 @@ log_info " Instance Name: ${INSTANCE_NAME}"
 log_info " Zone:          ${ZONE}"
 log_info " Git Repo:      ${GIT_REPO_URL}"
 log_info " Target Dir:    ${TARGET_DIR}"
+log_info " Port:          ${PORT}"
 log_info "================================================================="
 
 # Check gcloud CLI
@@ -36,13 +38,25 @@ if ! command -v gcloud &>/dev/null; then
     exit 1
 fi
 
-log_info "[1/4] Installing git, python3, venv, and redis on remote GCP VM..."
+log_info "[1/5] Opening GCP Firewall port ${PORT} to public ingress..."
+# Create firewall rule allowing port 5010 for instances tagged with proxy-pool
+gcloud compute firewall-rules create "allow-proxy-pool-${PORT}" \
+    --allow="tcp:${PORT}" \
+    --target-tags="proxy-pool" \
+    --description="Allow public ingress traffic on port ${PORT} for ProxyPool" &>/dev/null || log_warn "Firewall rule 'allow-proxy-pool-${PORT}' already exists or updated."
+
+# Add network tag proxy-pool to the VM instance
+gcloud compute instances add-tags "${INSTANCE_NAME}" \
+    --zone="${ZONE}" \
+    --tags="proxy-pool" &>/dev/null || log_warn "Network tag 'proxy-pool' already present on ${INSTANCE_NAME}."
+
+log_info "[2/5] Installing git, python3, venv, and redis on remote GCP VM..."
 gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
     sudo apt-get update -y && \
     sudo apt-get install -y git python3 python3-venv redis-server curl
 "
 
-log_info "[2/4] Cloning or pulling project repository on remote GCP VM..."
+log_info "[3/5] Cloning or pulling project repository on remote GCP VM..."
 gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
     sudo mkdir -p ${TARGET_DIR} && \
     sudo chown -R \$USER:\$USER ${TARGET_DIR} && \
@@ -55,7 +69,7 @@ gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
     fi
 "
 
-log_info "[3/4] Running deploy.sh on remote GCP VM..."
+log_info "[4/5] Running deploy.sh on remote GCP VM..."
 gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
     cd ${TARGET_DIR} && \
     chmod +x deploy.sh proxy_pool.sh && \
@@ -69,7 +83,7 @@ if [ -n "${AUTH_TOKEN}" ]; then
     "
 fi
 
-log_info "[4/4] Starting ProxyPool production service on remote GCP VM..."
+log_info "[5/5] Starting ProxyPool production service on remote GCP VM..."
 gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
     if command -v systemctl &>/dev/null && [ -f /etc/systemd/system/proxy_pool.service ]; then
         sudo systemctl restart proxy_pool && \
@@ -79,8 +93,15 @@ gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
     fi
 "
 
+EXTERNAL_IP=$(gcloud compute instances describe "${INSTANCE_NAME}" --zone="${ZONE}" --format='get(networkInterfaces[0].accessConfigs[0].natIP)' 2>/dev/null || echo "<INSTANCE_EXTERNAL_IP>")
+
 log_info ""
 log_info "================================================================="
 log_info " Remote Deployment Completed Successfully!"
-log_info " ProxyPool is running on GCP instance: ${INSTANCE_NAME}"
+log_info " ProxyPool Public URL: http://${EXTERNAL_IP}:${PORT}"
+if [ -n "${AUTH_TOKEN}" ]; then
+    log_info " Token Auth Enabled: Header 'Authorization: Bearer ${AUTH_TOKEN}' or '?token=${AUTH_TOKEN}'"
+else
+    log_info " Token Auth: Disabled (Pass AUTH_TOKEN='your_token' to enable)"
+fi
 log_info "================================================================="
