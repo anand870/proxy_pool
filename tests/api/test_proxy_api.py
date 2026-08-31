@@ -63,13 +63,13 @@ class TestGet:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["https"] is True
-        mocks["get"].assert_called_with(https=True, residential=False)
+        mocks["get"].assert_called_with(https=True, residential=None)
 
     def test_get_http_filter(self, client, mocks):
         mocks["get"].return_value = None
 
         client.get("/get/")
-        mocks["get"].assert_called_with(https=False, residential=False)
+        mocks["get"].assert_called_with(https=False, residential=None)
 
     def test_get_residential_filter(self, client, mocks):
         proxy = Proxy("1.1.1.1:8080", source="test", is_residential=True)
@@ -80,6 +80,16 @@ class TestGet:
         data = resp.get_json()
         assert data["is_residential"] is True
         mocks["get"].assert_called_with(https=False, residential=True)
+
+    def test_get_residential_false_filter(self, client, mocks):
+        proxy = Proxy("1.1.1.1:8080", source="test", is_residential=False)
+        mocks["get"].return_value = proxy
+
+        resp = client.get("/get/?residential=false")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["is_residential"] is False
+        mocks["get"].assert_called_with(https=False, residential=False)
 
     def test_get_type_residential(self, client, mocks):
         proxy = Proxy("1.1.1.1:8080", source="test", is_residential=True)
@@ -100,7 +110,7 @@ class TestPop:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["proxy"] == "1.2.3.4:8080"
-        mocks["pop"].assert_called_with(https=False, residential=False)
+        mocks["pop"].assert_called_with(https=False, residential=None)
 
     def test_pop_residential_filter(self, client, mocks):
         proxy = Proxy("1.2.3.4:8080", source="test", is_residential=True)
@@ -109,6 +119,14 @@ class TestPop:
         resp = client.get("/pop/?residential=1")
         assert resp.status_code == 200
         mocks["pop"].assert_called_with(https=False, residential=True)
+
+    def test_pop_residential_false_filter(self, client, mocks):
+        proxy = Proxy("1.2.3.4:8080", source="test", is_residential=False)
+        mocks["pop"].return_value = proxy
+
+        resp = client.get("/pop/?residential=false")
+        assert resp.status_code == 200
+        mocks["pop"].assert_called_with(https=False, residential=False)
 
     def test_pop_no_proxy(self, client, mocks):
         mocks["pop"].return_value = None
@@ -140,7 +158,31 @@ class TestAll:
 
         resp = client.get("/all/?residential=true")
         assert resp.status_code == 200
-        mocks["getAll"].assert_called_with(https=False, residential=True)
+        mocks["getAll"].assert_called_with(https=False, residential=True, num=None)
+
+    def test_all_residential_false_filter(self, client, mocks):
+        proxies = [Proxy("1.1.1.1:8080", source="test", is_residential=False)]
+        mocks["getAll"].return_value = proxies
+
+        resp = client.get("/all/?residential=false")
+        assert resp.status_code == 200
+        mocks["getAll"].assert_called_with(https=False, residential=False, num=None)
+
+    def test_all_num_filter(self, client, mocks):
+        proxies = [Proxy("1.1.1.1:8080", source="test")]
+        mocks["getAll"].return_value = proxies
+
+        resp = client.get("/all/?num=1")
+        assert resp.status_code == 200
+        mocks["getAll"].assert_called_with(https=False, residential=None, num=1)
+
+    def test_all_residential_false_and_num_filter(self, client, mocks):
+        proxies = [Proxy("1.1.1.1:8080", source="test", is_residential=False)]
+        mocks["getAll"].return_value = proxies
+
+        resp = client.get("/all/?residential=false&num=1")
+        assert resp.status_code == 200
+        mocks["getAll"].assert_called_with(https=False, residential=False, num=1)
 
     def test_all_empty(self, client, mocks):
         mocks["getAll"].return_value = []

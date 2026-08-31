@@ -133,21 +133,29 @@ When enabled, API requests must include the token via any of the following 3 for
 
 ---
 
-## Residential IP Filtering
+## Residential IP Filtering & Count Parameter
 
-Filter and fetch proxies marked as residential IPs using `?residential=true` or `?type=residential`:
+Filter and fetch proxies marked as residential or datacenter IPs using `?residential=true|false`, or limit returned proxies using `?num=N`:
 
 - **Fetch a random residential proxy**:
   ```bash
   curl "http://127.0.0.1:5010/get/?residential=true"
   ```
+- **Fetch a random non-residential (datacenter) proxy**:
+  ```bash
+  curl "http://127.0.0.1:5010/get/?residential=false"
+  ```
 - **Pop and delete a residential proxy**:
   ```bash
   curl "http://127.0.0.1:5010/pop/?residential=true"
   ```
-- **List all residential proxies**:
+- **List residential proxies with quantity limit**:
   ```bash
-  curl "http://127.0.0.1:5010/all/?residential=true"
+  curl "http://127.0.0.1:5010/all/?residential=true&num=5"
+  ```
+- **List non-residential proxies**:
+  ```bash
+  curl "http://127.0.0.1:5010/all/?residential=false"
   ```
 - **Proxy count statistics (including residential count)**:
   ```bash
@@ -170,9 +178,9 @@ To ensure complete requestor anonymity:
 | Endpoint | Method | Description | Parameters |
 |----------|--------|-------------|------------|
 | `/` | GET | List available API routes | None |
-| `/get` | GET | Get a random proxy | `type=https`, `residential=true` |
-| `/pop` | GET | Get and delete a proxy | `type=https`, `residential=true` |
-| `/all` | GET | Get all proxies from pool | `type=https`, `residential=true` |
+| `/get` | GET | Get a random proxy | `type=https`, `residential=true|false` |
+| `/pop` | GET | Get and delete a proxy | `type=https`, `residential=true|false` |
+| `/all` | GET | Get proxies from pool | `type=https`, `residential=true|false`, `num=N` |
 | `/count` | GET | Get proxy count & statistics | None |
 | `/delete` | GET | Delete an invalid proxy | `proxy=host:port` |
 

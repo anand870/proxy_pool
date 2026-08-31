@@ -98,7 +98,7 @@ class TestDbClientDelegation:
         db = self._make_client()
         db.client.get.return_value = '{"proxy": "1.2.3.4:8080"}'
         result = db.get(True)
-        db.client.get.assert_called_once_with(https=True, residential=False)
+        db.client.get.assert_called_once_with(https=True, residential=None)
         assert result == '{"proxy": "1.2.3.4:8080"}'
 
     def test_put(self):
@@ -127,14 +127,14 @@ class TestDbClientDelegation:
         db = self._make_client()
         db.client.pop.return_value = '{"proxy": "1.2.3.4:8080"}'
         result = db.pop(True)
-        db.client.pop.assert_called_once_with(https=True, residential=False)
+        db.client.pop.assert_called_once_with(https=True, residential=None)
         assert result == '{"proxy": "1.2.3.4:8080"}'
 
     def test_getAll(self):
         db = self._make_client()
         db.client.getAll.return_value = []
         result = db.getAll(False)
-        db.client.getAll.assert_called_once_with(https=False, residential=False)
+        db.client.getAll.assert_called_once_with(https=False, residential=None, num=None)
         assert result == []
 
 

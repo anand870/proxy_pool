@@ -113,6 +113,31 @@ class TestRedisGetAll:
         https_proxies = redis_client.getAll(https=True)
         assert len(https_proxies) == 1
 
+    def test_get_all_residential_filter(self, redis_client):
+        res_proxy = Proxy("1.1.1.1:8080", source="test", is_residential=True)
+        non_res_proxy = Proxy("2.2.2.2:8080", source="test", is_residential=False)
+        redis_client.put(res_proxy)
+        redis_client.put(non_res_proxy)
+
+        res_only = redis_client.getAll(residential=True)
+        assert len(res_only) == 1
+        assert json.loads(res_only[0])["proxy"] == "1.1.1.1:8080"
+
+        non_res_only = redis_client.getAll(residential=False)
+        assert len(non_res_only) == 1
+        assert json.loads(non_res_only[0])["proxy"] == "2.2.2.2:8080"
+
+        all_proxies = redis_client.getAll(residential=None)
+        assert len(all_proxies) == 2
+
+    def test_get_all_num_filter(self, redis_client):
+        redis_client.put(_make_proxy("1.2.3.4:8080"))
+        redis_client.put(_make_proxy("5.6.7.8:8080"))
+        redis_client.put(_make_proxy("9.9.9.9:8080"))
+
+        limited = redis_client.getAll(num=2)
+        assert len(limited) == 2
+
 
 class TestRedisGetCount:
 

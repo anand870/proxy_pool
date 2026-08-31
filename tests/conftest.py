@@ -85,7 +85,8 @@ def app():
         with patch.object(proxy_handler, "get") as mock_get, \
              patch.object(proxy_handler, "pop") as mock_pop, \
              patch.object(proxy_handler, "getAll") as mock_getAll, \
-             patch.object(proxy_handler, "delete") as mock_delete:
+             patch.object(proxy_handler, "delete") as mock_delete, \
+             patch("api.proxyApi.conf.authToken", None):
             flask_app._test_mocks = {
                 "get": mock_get,
                 "pop": mock_pop,

@@ -50,7 +50,7 @@ api_list = [
     {"url": "/get", "params": "type: 'https'|'', residential: 'true'|'false'", "desc": "get a proxy"},
     {"url": "/pop", "params": "type: 'https'|'', residential: 'true'|'false'", "desc": "get and delete a proxy"},
     {"url": "/delete", "params": "proxy: 'e.g. 127.0.0.1:8080'", "desc": "delete an unusable proxy"},
-    {"url": "/all", "params": "type: 'https'|'', residential: 'true'|'false'", "desc": "get all proxies from proxy pool"},
+    {"url": "/all", "params": "type: 'https'|'', residential: 'true'|'false', num: 'int'", "desc": "get all proxies from proxy pool"},
     {"url": "/count", "params": "", "desc": "return proxy count statistics"}
 ]
 
@@ -87,8 +87,22 @@ def _parse_params():
     req_type = request.args.get("type", "").lower()
     https = (req_type == 'https')
     res_arg = request.args.get("residential", "").lower() or request.args.get("is_residential", "").lower()
-    residential = (res_arg in ["true", "1", "yes"]) or (req_type == "residential")
-    return https, residential
+    if res_arg in ["true", "1", "yes"] or req_type == "residential":
+        residential = True
+    elif res_arg in ["false", "0", "no"]:
+        residential = False
+    else:
+        residential = None
+
+    num_arg = request.args.get("num") or request.args.get("count")
+    num = None
+    if num_arg is not None:
+        try:
+            num = int(num_arg)
+        except ValueError:
+            num = None
+
+    return https, residential, num
 
 
 @app.route('/')
@@ -98,14 +112,14 @@ def index():
 
 @app.route('/get/')
 def get():
-    https, residential = _parse_params()
+    https, residential, _ = _parse_params()
     proxy = proxy_handler.get(https=https, residential=residential)
     return proxy.to_dict if proxy else {"code": 0, "src": "no proxy"}
 
 
 @app.route('/pop/')
 def pop():
-    https, residential = _parse_params()
+    https, residential, _ = _parse_params()
     proxy = proxy_handler.pop(https=https, residential=residential)
     return proxy.to_dict if proxy else {"code": 0, "src": "no proxy"}
 
@@ -118,8 +132,8 @@ def refresh():
 
 @app.route('/all/')
 def getAll():
-    https, residential = _parse_params()
-    proxies = proxy_handler.getAll(https=https, residential=residential)
+    https, residential, num = _parse_params()
+    proxies = proxy_handler.getAll(https=https, residential=residential, num=num)
     return jsonify([_.to_dict for _ in proxies])
 
 

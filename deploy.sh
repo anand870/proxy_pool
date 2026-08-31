@@ -48,6 +48,11 @@ log_info "Upgrading pip and installing requirements..."
 $VENV_PIP install --upgrade pip -q
 $VENV_PIP install -r requirements.txt -q
 
+# Ensure log directory exists with write permissions
+mkdir -p "$SCRIPT_DIR/log"
+chmod 777 "$SCRIPT_DIR/log" 2>/dev/null || true
+
+
 # 3. Setup Default .env Configuration
 ENV_FILE="$SCRIPT_DIR/.env"
 if [ ! -f "$ENV_FILE" ]; then

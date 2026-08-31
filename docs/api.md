@@ -7,9 +7,9 @@
 | 接口 | 方法 | 说明 | 参数 |
 |------|------|------|------|
 | `/` | GET | 返回 API 列表 | 无 |
-| `/get` | GET | 随机返回一个代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true` 过滤住宅 IP 代理 |
-| `/pop` | GET | 返回并删除一个代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true` 过滤住宅 IP 代理 |
-| `/all` | GET | 返回所有代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true` 过滤住宅 IP 代理 |
+| `/get` | GET | 随机返回一个代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true|false` 过滤住宅 IP / 非住宅 IP 代理 |
+| `/pop` | GET | 返回并删除一个代理 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true|false` 过滤住宅 IP / 非住宅 IP 代理 |
+| `/all` | GET | 返回代理列表 | 可选：`?type=https` 过滤 HTTPS 代理；`?residential=true|false` 过滤住宅 IP / 非住宅 IP 代理；`?num=N` 指定返回代理数量 |
 | `/count` | GET | 返回代理数量统计（含 residential 住宅 IP 统计） | 无 |
 | `/delete` | GET | 删除指定代理 | `?proxy=host:port` |
 

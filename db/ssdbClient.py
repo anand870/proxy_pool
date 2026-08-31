@@ -48,18 +48,20 @@ class SsdbClient(object):
                                                                    protocol=2,
                                                                    **kwargs))
 
-    def _filter_proxy(self, proxy_str, https=False, residential=False):
+    def _filter_proxy(self, proxy_str, https=False, residential=None):
         try:
             data = json.loads(proxy_str)
             if https and not data.get("https"):
                 return False
-            if residential and not (data.get("is_residential") or data.get("residential")):
+            if residential is True and not (data.get("is_residential") or data.get("residential")):
+                return False
+            if residential is False and (data.get("is_residential") or data.get("residential")):
                 return False
             return True
         except Exception:
             return False
 
-    def get(self, https=False, residential=False):
+    def get(self, https=False, residential=None):
         """
         从hash中随机返回一个代理
         :return:
@@ -77,7 +79,7 @@ class SsdbClient(object):
         result = self.__conn.hset(self.name, proxy_obj.proxy, proxy_obj.to_json)
         return result
 
-    def pop(self, https=False, residential=False):
+    def pop(self, https=False, residential=None):
         """
         顺序弹出一个代理
         :return: proxy
@@ -111,13 +113,16 @@ class SsdbClient(object):
         """
         self.__conn.hset(self.name, proxy_obj.proxy, proxy_obj.to_json)
 
-    def getAll(self, https=False, residential=False):
+    def getAll(self, https=False, residential=None, num=None):
         """
         字典形式返回所有代理, 使用changeTable指定hash name
         :return:
         """
         item_dict = self.__conn.hgetall(self.name)
-        return [x for x in item_dict.values() if self._filter_proxy(x, https=https, residential=residential)]
+        proxies = [x for x in item_dict.values() if self._filter_proxy(x, https=https, residential=residential)]
+        if num is not None and isinstance(num, int) and num >= 0:
+            proxies = proxies[:num]
+        return proxies
 
     def clear(self):
         """
