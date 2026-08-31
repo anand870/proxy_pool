@@ -92,7 +92,29 @@ This script will:
 sudo systemctl start proxy_pool
 sudo systemctl status proxy_pool
 sudo systemctl stop proxy_pool
+sudo systemctl restart proxy_pool
 ```
+
+### Checking Server Status & Logs
+
+To verify if the server is running, check process logs, or inspect port binding:
+
+- **Stream Live Logs**:
+  ```bash
+  sudo journalctl -u proxy_pool.service -f
+  ```
+- **View Recent Log History**:
+  ```bash
+  sudo journalctl -u proxy_pool.service -n 50 --no-pager
+  ```
+- **Check Service Health & Status**:
+  ```bash
+  sudo systemctl status proxy_pool
+  ```
+- **Verify Port 5010 Binding**:
+  ```bash
+  sudo lsof -i :5010
+  ```
 
 ### Method 3: Containerized Deployment (Docker & Docker Compose)
 
