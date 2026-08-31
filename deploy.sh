@@ -142,4 +142,3 @@ log_info "  Start in background: ./proxy_pool.sh start"
 log_info "  Check status:       ./proxy_pool.sh status"
 log_info "  Stop service:       ./proxy_pool.sh stop"
 log_info "  Systemd start:      sudo systemctl start proxy_pool"
-EOF
