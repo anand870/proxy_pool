@@ -138,7 +138,7 @@ class TestProxyHandlerGetAll:
         assert len(result) == 2
         assert result[0].proxy == "1.2.3.4:8080"
         assert result[1].proxy == "5.6.7.8:443"
-        handler._mock_db.getAll.assert_called_once_with(https=False, residential=None, num=None)
+        handler._mock_db.getAll.assert_called_once_with(https=False, residential=None, num=None, raw=False)
 
 
     def test_getAll_empty_returns_empty_list(self):

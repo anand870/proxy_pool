@@ -24,6 +24,8 @@ class KuaidailiFetcher(BaseFetcher):
     name = "kuaidaili"
     url = "https://www.kuaidaili.com"
 
+    enabled = False  # 反爬拦截, 返回非 HTML 导致解析失败, 2026/09/03 禁用
+
     def fetch(self, page_count=1):
         url_pattern = [
             'https://www.kuaidaili.com/free/inha/{}/',

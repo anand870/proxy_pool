@@ -78,6 +78,10 @@ MAX_FAIL_COUNT = 0
 # proxyCheck时代理数量少于POOL_SIZE_MIN触发抓取
 POOL_SIZE_MIN = 20
 
+# /get 与 /all 接口只返回最近 PROXY_FRESH_SECONDS 秒内校验通过的代理,
+# 避免返回距上次校验过久(可能已失效)的代理。设为 0 关闭时间过滤。
+PROXY_FRESH_SECONDS = 900
+
 # ############# proxy attributes #################
 # 是否启用代理地域属性
 PROXY_REGION = True

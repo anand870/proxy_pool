@@ -104,8 +104,8 @@ class DbClient(withMetaclass(Singleton)):
     def pop(self, https=False, residential=None, **kwargs):
         return self.client.pop(https=https, residential=residential, **kwargs)
 
-    def getAll(self, https=False, residential=None, num=None):
-        return self.client.getAll(https=https, residential=residential, num=num)
+    def getAll(self, https=False, residential=None, num=None, raw=False):
+        return self.client.getAll(https=https, residential=residential, num=num, raw=raw)
 
 
     def clear(self):

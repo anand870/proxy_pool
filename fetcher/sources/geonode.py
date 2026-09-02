@@ -26,6 +26,8 @@ class GeonodeFetcher(BaseFetcher):
     url = "https://geonode.com/"
     is_residential = True
 
+    enabled = False  # API 持续返回空数据, 2026/09/03 禁用
+
 
     def fetch(self):
         url = ("https://proxylist.geonode.com/api/proxy-list?"

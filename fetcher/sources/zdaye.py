@@ -25,6 +25,8 @@ class ZdayeFetcher(BaseFetcher):
     name = "zdaye"
     url = "https://www.zdaye.com/dayProxy.html"
 
+    enabled = False  # 页面结构变更导致解析 IndexError, 2026/09/03 禁用
+
     def fetch(self):
         start_url = "https://www.zdaye.com/free/"
         html_tree = WebRequest().get(start_url, verify=False).tree

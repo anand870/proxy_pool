@@ -22,6 +22,8 @@ class GoodipsFetcher(BaseFetcher):
     name = "goodips"
     url = "https://www.goodips.com/"
 
+    enabled = False  # 反爬拦截, tree 为 None 导致解析失败, 2026/09/03 禁用
+
     def fetch(self):
         url = "https://www.goodips.com/"
         tree = WebRequest().get(url, verify=False).tree

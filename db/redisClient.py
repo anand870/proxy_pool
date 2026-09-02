@@ -17,6 +17,8 @@ __author__ = 'JHao'
 from redis.exceptions import TimeoutError, ConnectionError, ResponseError
 from redis.connection import BlockingConnectionPool
 from handler.logHandler import LogHandler
+from handler.configHandler import ConfigHandler
+from datetime import datetime
 from random import choice
 from redis import Redis
 import json
@@ -61,13 +63,58 @@ class RedisClient(object):
         except Exception:
             return False
 
+    @staticmethod
+    def _is_working(data):
+        """ 最近一次校验是否通过 """
+        status = data.get("last_status")
+        return status is True or str(status).lower() == "true"
+
+    @staticmethod
+    def _check_age(data):
+        """ 距上次校验的秒数; 无法解析时返回 None """
+        last_time = data.get("last_time") or ""
+        try:
+            checked = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
+        except (ValueError, TypeError):
+            return None
+        return (datetime.now() - checked).total_seconds()
+
+    def _live_proxies(self, https=False, residential=None):
+        """
+        返回「最近校验通过」的代理列表, 按校验时间从新到旧排序。
+        优先返回 PROXY_FRESH_SECONDS 秒内校验通过的代理;
+        若无满足时效要求的, 退回到所有校验通过的代理, 避免空池。
+        """
+        max_age = ConfigHandler().proxyFreshSeconds
+        working = []
+        for proxy_str in self.__conn.hvals(self.name):
+            if not self._filter_proxy(proxy_str, https=https, residential=residential):
+                continue
+            try:
+                data = json.loads(proxy_str)
+            except Exception:
+                continue
+            if not self._is_working(data):
+                continue
+            working.append((self._check_age(data), proxy_str))
+
+        def _sort_key(item):
+            age = item[0]
+            return age if age is not None else float("inf")
+
+        working.sort(key=_sort_key)
+        if max_age and max_age > 0:
+            fresh = [p for age, p in working if age is not None and age <= max_age]
+            if fresh:
+                return fresh
+        return [p for _, p in working]
+
     def get(self, https=False, residential=None):
         """
-        返回一个代理
+        返回一个「最近校验通过」的代理
         :return:
         """
-        items = self.__conn.hvals(self.name)
-        proxies = [x for x in items if self._filter_proxy(x, https=https, residential=residential)]
+        proxies = self._live_proxies(https=https, residential=residential)
         return choice(proxies) if proxies else None
 
     def put(self, proxy_obj):
@@ -113,13 +160,18 @@ class RedisClient(object):
         """
         return self.__conn.hset(self.name, proxy_obj.proxy, proxy_obj.to_json)
 
-    def getAll(self, https=False, residential=None, num=None):
+    def getAll(self, https=False, residential=None, num=None, raw=False):
         """
-        字典形式返回所有代理, 使用changeTable指定hash name
+        字典形式返回代理列表, 使用changeTable指定hash name。
+        raw=False(默认): 只返回「最近校验通过」的代理, 校验时间从新到旧排序(供 /get /all 使用);
+        raw=True: 返回池中全部代理(供调度器复检使用)。
         :return:
         """
-        items = self.__conn.hvals(self.name)
-        proxies = [x for x in items if self._filter_proxy(x, https=https, residential=residential)]
+        if raw:
+            items = self.__conn.hvals(self.name)
+            proxies = [x for x in items if self._filter_proxy(x, https=https, residential=residential)]
+        else:
+            proxies = self._live_proxies(https=https, residential=residential)
         if num is not None and isinstance(num, int) and num >= 0:
             proxies = proxies[:num]
         return proxies
