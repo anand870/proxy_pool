@@ -26,6 +26,7 @@ An automated, high-performance proxy pool for web scrapers and crawlers. It auto
 - 🔐 **Token-Based Authentication System**: Protect your API endpoints with configurable token authentication (`Authorization: Bearer <token>`, `X-API-Token`, or `?token=<token>`).
 - 🛡️ **Zero-Log Requestor Privacy**: Strict privacy protection — no client IP addresses, headers, or requestor details are ever logged or retained in log files.
 - ⚡ **Automated Scheduling & Validation**: Built-in APScheduler constantly checks proxy latency, availability, and failure thresholds.
+- 🕒 **Fresh-Only Serving**: `/get` and `/all` return only proxies that **passed their last check** and were **re-validated within `PROXY_FRESH_SECONDS`** (default 900s), newest-checked first — never stale entries.
 - 🔌 **Pluggable Architecture**: Modular proxy fetchers with automatic directory discovery and runtime hot-reloading.
 
 ---
@@ -187,6 +188,23 @@ Filter and fetch proxies marked as residential or datacenter IPs using `?residen
 
 ---
 
+## Fresh-Only Proxy Serving
+
+`/get`, `/pop`, `/all` and `/count` never expose stale proxies. A proxy is only
+returned if **both** hold:
+
+1. Its most recent validation **passed** (`last_status` is true).
+2. It was re-validated within **`PROXY_FRESH_SECONDS`** (default `900`; set to `0`
+   to disable the time window).
+
+Results are ordered by check time, newest first. If no proxy currently falls
+inside the freshness window, the API falls back to all still-passing proxies so
+the pool never appears empty. The scheduler's own re-check job is unaffected — it
+always iterates the full pool so failing/stale entries keep getting re-tested and
+pruned.
+
+---
+
 ## Zero-Log Requestor Privacy
 
 To ensure complete requestor anonymity:
@@ -200,9 +218,9 @@ To ensure complete requestor anonymity:
 | Endpoint | Method | Description | Parameters |
 |----------|--------|-------------|------------|
 | `/` | GET | List available API routes | None |
-| `/get` | GET | Get a random proxy | `type=https`, `residential=true|false` |
+| `/get` | GET | Get a random **freshly-validated** proxy | `type=https`, `residential=true|false` |
 | `/pop` | GET | Get and delete a proxy | `type=https`, `residential=true|false` |
-| `/all` | GET | Get proxies from pool | `type=https`, `residential=true|false`, `num=N` |
+| `/all` | GET | Get **freshly-validated** proxies (newest-checked first) | `type=https`, `residential=true|false`, `num=N` |
 | `/count` | GET | Get proxy count & statistics | None |
 | `/delete` | GET | Delete an invalid proxy | `proxy=host:port` |
 
@@ -261,24 +279,44 @@ class CustomFetcher(BaseFetcher):
 
 The scheduler automatically scans `fetcher/sources/` on the next iteration and enables new fetchers without restarting the application.
 
+### Auditing Source Health
+
+`source_health.py` runs every source once, live-validates the proxies it returns,
+and prints a per-source table (fetched / working / rate) plus overlap between
+sources. It writes a JSON dump under `log/`.
+
+```bash
+python source_health.py                # all sources
+python source_health.py scdn iplocate  # only named sources
+python source_health.py --no-validate  # fetch only, skip validation
+```
+
 ---
 
 ## Supported Public Proxy Sources
 
 | Source Name | Enabled | Residential Tag | File Path |
 |-------------|---------|-----------------|-----------|
-| Geonode | ✔ | Yes | [`geonode.py`](fetcher/sources/geonode.py) |
+| IPLocate | ✔ | No | [`iplocate.py`](fetcher/sources/iplocate.py) |
 | RoundProxies | ✔ | Yes | [`roundproxies.py`](fetcher/sources/roundproxies.py) |
 | Proxifly | ✔ | No | [`proxifly.py`](fetcher/sources/proxifly.py) |
-| Kuaidaili | ✔ | No | [`kuaidaili.py`](fetcher/sources/kuaidaili.py) |
+| SCDN | ✔ | No | [`scdn.py`](fetcher/sources/scdn.py) |
 | Kxdaili | ✔ | No | [`kxdaili.py`](fetcher/sources/kxdaili.py) |
 | IP3366 | ✔ | No | [`ip3366.py`](fetcher/sources/ip3366.py) |
 | Ihuan | ✔ | No | [`ihuan.py`](fetcher/sources/ihuan.py) |
 | IP89 | ✔ | No | [`ip89.py`](fetcher/sources/ip89.py) |
-| DocIP | ✔ | No | [`docip.py`](fetcher/sources/docip.py) |
-| GoodIPs | ✔ | No | [`goodips.py`](fetcher/sources/goodips.py) |
 | Daili66 | ✔ | No | [`daili66.py`](fetcher/sources/daili66.py) |
 | FreeVPNNode | ✔ | No | [`freevpnnode.py`](fetcher/sources/freevpnnode.py) |
+| Geonode | ✗ Disabled | Yes | [`geonode.py`](fetcher/sources/geonode.py) |
+| Kuaidaili | ✗ Disabled | No | [`kuaidaili.py`](fetcher/sources/kuaidaili.py) |
+| DocIP | ✗ Disabled | No | [`docip.py`](fetcher/sources/docip.py) |
+| GoodIPs | ✗ Disabled | No | [`goodips.py`](fetcher/sources/goodips.py) |
+| Zdaye | ✗ Disabled | No | [`zdaye.py`](fetcher/sources/zdaye.py) |
+
+> Sources are marked **Disabled** (`enabled = False`, file retained) when the
+> upstream site is down or its response format broke: `docip` (site offline),
+> `geonode` (empty API), `zdaye` / `kuaidaili` / `goodips` (parser / anti-bot
+> failures). Flip `enabled` back to `True` to re-activate once fixed.
 
 ---
 
@@ -295,6 +333,7 @@ The scheduler automatically scans `fetcher/sources/` on the next iteration and e
 | `GUNICORN_THREADS` | `2` | Threads per Gunicorn worker |
 | `VERIFY_TIMEOUT` | `10` | Proxy validation timeout in seconds |
 | `POOL_SIZE_MIN` | `20` | Minimum proxy threshold before triggering re-fetch |
+| `PROXY_FRESH_SECONDS` | `900` | Max age (seconds) since last successful check for a proxy to be served by `/get` & `/all`; `0` disables the time filter |
 | `TIMEZONE` | `Asia/Shanghai` | Scheduler timezone |
 
 ---
