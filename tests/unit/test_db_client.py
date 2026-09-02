@@ -134,7 +134,7 @@ class TestDbClientDelegation:
         db = self._make_client()
         db.client.getAll.return_value = []
         result = db.getAll(False)
-        db.client.getAll.assert_called_once_with(https=False, residential=None, num=None)
+        db.client.getAll.assert_called_once_with(https=False, residential=None, num=None, raw=False)
         assert result == []
 
 

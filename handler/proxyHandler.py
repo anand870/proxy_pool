@@ -62,12 +62,14 @@ class ProxyHandler(object):
         """
         return self.db.delete(proxy.proxy)
 
-    def getAll(self, https=False, residential=None, num=None):
+    def getAll(self, https=False, residential=None, num=None, raw=False):
         """
         get all proxy from pool as Proxy list
+        raw=False: 仅返回最近校验通过的代理(供 API 使用);
+        raw=True: 返回池中全部代理(供调度器复检使用)。
         :return:
         """
-        proxies = self.db.getAll(https=https, residential=residential, num=num)
+        proxies = self.db.getAll(https=https, residential=residential, num=num, raw=raw)
         return [Proxy.createFromJson(_) for _ in proxies]
 
 

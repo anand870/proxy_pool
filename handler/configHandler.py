@@ -90,6 +90,10 @@ class ConfigHandler(withMetaclass(Singleton)):
         return int(os.getenv("POOL_SIZE_MIN", setting.POOL_SIZE_MIN))
 
     @LazyProperty
+    def proxyFreshSeconds(self):
+        return int(os.getenv("PROXY_FRESH_SECONDS", getattr(setting, "PROXY_FRESH_SECONDS", 900)))
+
+    @LazyProperty
     def proxyRegion(self):
         return bool(os.getenv("PROXY_REGION", setting.PROXY_REGION))
 

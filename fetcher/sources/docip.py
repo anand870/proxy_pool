@@ -25,6 +25,8 @@ class DocipFetcher(BaseFetcher):
     name = "docip"
     url = "https://www.docip.net/"
 
+    enabled = False  # 站点已下线 (connection refused), 2026/09/03 禁用
+
     def fetch(self):
         r = WebRequest().get("https://www.docip.net/data/free.json", timeout=10)
         try:
