@@ -23,7 +23,8 @@ def clean_env():
     """测试前后清理可能设置的环境变量"""
     env_keys = ["DB_CONN", "PORT", "HOST", "TABLE_NAME", "HTTP_URL",
                 "HTTPS_URL", "VERIFY_TIMEOUT", "MAX_FAIL_COUNT",
-                "POOL_SIZE_MIN", "PROXY_REGION", "TIMEZONE"]
+                "POOL_SIZE_MIN", "PROXY_REGION", "TIMEZONE",
+                "SSL_ENABLED", "SSL_CERTFILE", "SSL_KEYFILE"]
     saved = {k: os.environ.get(k) for k in env_keys}
     for k in env_keys:
         os.environ.pop(k, None)
@@ -97,3 +98,27 @@ class TestConfigHandlerEnvOverride:
         os.environ["MAX_FAIL_COUNT"] = "5"
         conf = ConfigHandler()
         assert conf.maxFailCount == 5
+
+
+class TestConfigHandlerSsl:
+
+    @pytest.mark.parametrize("value,expected", [
+        ("true", True), ("True", True), ("1", True), ("yes", True), ("on", True),
+        ("false", False), ("0", False), ("no", False), ("", False),
+    ])
+    def test_ssl_enabled_parsing(self, value, expected):
+        os.environ["SSL_ENABLED"] = value
+        conf = ConfigHandler()
+        assert conf.sslEnabled is expected
+
+    def test_ssl_cert_relative_path_resolved_to_root(self):
+        os.environ["SSL_CERTFILE"] = "gateway/tls.crt"
+        conf = ConfigHandler()
+        root = os.path.dirname(os.path.abspath(setting.__file__))
+        assert conf.sslCertFile == os.path.join(root, "gateway/tls.crt")
+        assert os.path.isabs(conf.sslCertFile)
+
+    def test_ssl_key_absolute_path_untouched(self):
+        os.environ["SSL_KEYFILE"] = "/etc/ssl/private/tls.key"
+        conf = ConfigHandler()
+        assert conf.sslKeyFile == "/etc/ssl/private/tls.key"

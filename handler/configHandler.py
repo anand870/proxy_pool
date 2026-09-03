@@ -37,6 +37,28 @@ class ConfigHandler(withMetaclass(Singleton)):
         return os.getenv("AUTH_TOKEN", getattr(setting, "AUTH_TOKEN", ""))
 
     @LazyProperty
+    def sslEnabled(self):
+        val = os.getenv("SSL_ENABLED", getattr(setting, "SSL_ENABLED", False))
+        if isinstance(val, bool):
+            return val
+        return str(val).strip().lower() in ("1", "true", "yes", "on")
+
+    @LazyProperty
+    def sslCertFile(self):
+        return self._resolvePath(os.getenv("SSL_CERTFILE", getattr(setting, "SSL_CERTFILE", "gateway/tls.crt")))
+
+    @LazyProperty
+    def sslKeyFile(self):
+        return self._resolvePath(os.getenv("SSL_KEYFILE", getattr(setting, "SSL_KEYFILE", "gateway/tls.key")))
+
+    @staticmethod
+    def _resolvePath(path):
+        if not path or os.path.isabs(path):
+            return path
+        root = os.path.dirname(os.path.abspath(setting.__file__))
+        return os.path.join(root, path)
+
+    @LazyProperty
     def gunicornWorkers(self):
         return int(os.getenv("GUNICORN_WORKERS", getattr(setting, "GUNICORN_WORKERS", 2)))
 

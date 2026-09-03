@@ -11,7 +11,8 @@ ZONE="${2:-${ZONE:-us-central1-a}}"
 GIT_REPO_URL="${3:-${GIT_REPO_URL:-https://github.com/anand870/proxy_pool.git}}"
 TARGET_DIR="${TARGET_DIR:-/opt/proxy_pool}"
 AUTH_TOKEN="${AUTH_TOKEN:-}"
-PORT="${PORT:-5010}"
+GATEWAY_DOMAIN="${GATEWAY_DOMAIN:-}"
+PORT="${PORT:-9443}"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -85,6 +86,14 @@ if [ -n "${AUTH_TOKEN}" ]; then
     "
 fi
 
+if [ -n "${GATEWAY_DOMAIN}" ]; then
+    log_info "Setting GATEWAY_DOMAIN=${GATEWAY_DOMAIN} and regenerating gateway cert..."
+    gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
+        sed -i 's/^GATEWAY_DOMAIN=.*/GATEWAY_DOMAIN=${GATEWAY_DOMAIN}/' ${TARGET_DIR}/.env && \
+        cd ${TARGET_DIR} && GATEWAY_DOMAIN=${GATEWAY_DOMAIN} bash scripts/gen_gateway_cert.sh --force
+    "
+fi
+
 log_info "[5/5] Starting ProxyPool production service on remote GCP VM..."
 gcloud compute ssh "${INSTANCE_NAME}" --zone="${ZONE}" --command="
     if command -v systemctl &>/dev/null && [ -f /etc/systemd/system/proxy_pool.service ]; then
@@ -100,9 +109,16 @@ EXTERNAL_IP=$(gcloud compute instances describe "${INSTANCE_NAME}" --zone="${ZON
 log_info ""
 log_info "================================================================="
 log_info " Remote Deployment Completed Successfully!"
-log_info " ProxyPool Public URL: http://${EXTERNAL_IP}:${PORT}"
+if [ -n "${GATEWAY_DOMAIN}" ]; then
+    log_info " ProxyPool Public URL: https://${GATEWAY_DOMAIN}:${PORT}"
+else
+    log_info " ProxyPool Public URL: https://${EXTERNAL_IP}:${PORT}"
+fi
+log_info " TLS: self-signed gateway cert. Clients use 'curl --cacert gateway/tls.crt ...'"
+log_info "      (or -k to skip verification). Replace gateway/tls.{crt,key} with a"
+log_info "      CA-signed pair + set GATEWAY_DOMAIN to drop --cacert."
 if [ -n "${AUTH_TOKEN}" ]; then
-    log_info " Token Auth Enabled: Header 'Authorization: Bearer ${AUTH_TOKEN}' or '?token=${AUTH_TOKEN}'"
+    log_info " Token Auth Enabled: Header 'Authorization: Bearer <token>' (header only, no ?token=)"
 else
     log_info " Token Auth: Disabled (Pass AUTH_TOKEN='your_token' to enable)"
 fi

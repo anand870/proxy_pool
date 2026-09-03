@@ -261,10 +261,17 @@ class TestTokenAuth:
             resp = client.get("/get/", headers={"X-API-Token": "secret-token"})
             assert resp.status_code == 200
 
-    def test_token_auth_valid_query_param(self, client, mocks):
+    def test_token_auth_query_param_rejected(self, client, mocks):
+        # Query-string tokens are no longer accepted (leak into URLs/logs).
         mocks["get"].return_value = Proxy("1.2.3.4:8080")
         with patch("api.proxyApi.conf.authToken", "secret-token"):
             resp = client.get("/get/?token=secret-token")
+            assert resp.status_code == 401
+
+    def test_token_auth_valid_x_auth_token(self, client, mocks):
+        mocks["get"].return_value = Proxy("1.2.3.4:8080")
+        with patch("api.proxyApi.conf.authToken", "secret-token"):
+            resp = client.get("/get/", headers={"X-Auth-Token": "secret-token"})
             assert resp.status_code == 200
 
 
@@ -296,8 +303,22 @@ class TestRunFlask:
     @patch("api.proxyApi.platform")
     @patch("api.proxyApi.app")
     def test_runflask_windows_path(self, mock_app, mock_platform):
-        """Windows 下调用 app.run()"""
+        """Windows 下调用 app.run()，TLS 关闭时 ssl_context=None"""
         mock_platform.system.return_value = "Windows"
-        from api.proxyApi import runFlask
-        runFlask()
+        with patch("api.proxyApi.conf.sslEnabled", False):
+            from api.proxyApi import runFlask
+            runFlask()
         mock_app.run.assert_called_once()
+        assert mock_app.run.call_args.kwargs.get("ssl_context") is None
+
+    @patch("api.proxyApi.platform")
+    @patch("api.proxyApi.app")
+    def test_runflask_exits_when_tls_enabled_without_cert(self, mock_app, mock_platform):
+        """SSL_ENABLED 但证书缺失时应退出"""
+        mock_platform.system.return_value = "Windows"
+        with patch("api.proxyApi.conf.sslEnabled", True), \
+             patch("api.proxyApi.conf.sslCertFile", "/nope/tls.crt"), \
+             patch("api.proxyApi.conf.sslKeyFile", "/nope/tls.key"):
+            from api.proxyApi import runFlask
+            with pytest.raises(SystemExit):
+                runFlask()

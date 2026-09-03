@@ -49,6 +49,7 @@ def __showConfigure():
     conf = ConfigHandler()
     log.info("ProxyPool configure HOST: %s" % conf.serverHost)
     log.info("ProxyPool configure PORT: %s" % conf.serverPort)
+    log.info("ProxyPool configure SCHEME: %s" % ("https" if conf.sslEnabled else "http"))
     exclude = conf.fetcherExclude
     if exclude:
         log.info("ProxyPool configure PROXY_FETCHER_EXCLUDE: %s" % exclude)

@@ -11,3 +11,10 @@ docs/specs/
 .coverage
 .pytest_cache/
 htmlcov/
+
+# Local secrets / environment
+.env
+log/
+
+# TLS gateway cert + private key (generated per host, never commit)
+gateway/

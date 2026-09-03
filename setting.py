@@ -30,10 +30,24 @@ VERSION = "2.4.0"
 # ############### server config ###############
 HOST = "0.0.0.0"
 
-PORT = 5010
+PORT = 9443
 
 # API token authentication system (Empty string disabled, set string to enable)
 AUTH_TOKEN = ""
+
+# ############### TLS / HTTPS gateway config ###############
+# When enabled, the embedded gunicorn server terminates TLS itself using the
+# cert/key below. Generate a self-signed pair with scripts/gen_gateway_cert.sh,
+# or drop in a CA-signed pair (e.g. Let's Encrypt) at the same paths.
+SSL_ENABLED = True
+
+# Paths are resolved relative to the project root when not absolute.
+SSL_CERTFILE = "gateway/tls.crt"
+SSL_KEYFILE = "gateway/tls.key"
+
+# Optional DNS name for the gateway. Only consumed by scripts/gen_gateway_cert.sh
+# (added to the cert SAN). Set this once you point a real domain at the host.
+GATEWAY_DOMAIN = ""
 
 # Gunicorn production options (Optimized for GCP Compute Engine e2-micro Free Tier)
 

@@ -16,8 +16,11 @@
 """
 __author__ = 'JHao'
 
+import hmac
 import logging
+import os
 import platform
+import sys
 from werkzeug.wrappers import Response
 from flask import Flask, jsonify, request
 
@@ -61,6 +64,8 @@ def verify_token():
     if not auth_token:
         return None
 
+    # Token is accepted from request headers only. Query-string tokens (?token=)
+    # are intentionally not supported: they leak into URLs, referrers and logs.
     auth_header = request.headers.get("Authorization", "")
     req_token = None
     if auth_header.startswith("Bearer "):
@@ -75,11 +80,9 @@ def verify_token():
             request.headers.get("X-API-Token")
             or request.headers.get("X-Auth-Token")
             or request.headers.get("Api-Key")
-            or request.args.get("token")
-            or request.args.get("api_key")
         )
 
-    if req_token != auth_token:
+    if not req_token or not hmac.compare_digest(str(req_token), str(auth_token)):
         return jsonify({"code": 401, "src": "Unauthorized: invalid or missing token"}), 401
 
 
@@ -166,9 +169,22 @@ def getCount():
     }
 
 
+def _sslContext():
+    """Return (certfile, keyfile) when TLS is enabled, else None. Exits on misconfig."""
+    if not conf.sslEnabled:
+        return None
+    cert, key = conf.sslCertFile, conf.sslKeyFile
+    if not (cert and key and os.path.isfile(cert) and os.path.isfile(key)):
+        log.error("SSL_ENABLED is set but cert/key not found: certfile=%s keyfile=%s. "
+                  "Run scripts/gen_gateway_cert.sh or disable SSL_ENABLED." % (cert, key))
+        sys.exit(1)
+    return cert, key
+
+
 def runFlask():
+    ssl_ctx = _sslContext()
     if platform.system() == "Windows":
-        app.run(host=conf.serverHost, port=conf.serverPort)
+        app.run(host=conf.serverHost, port=conf.serverPort, ssl_context=ssl_ctx)
     else:
         import gunicorn.app.base
 
@@ -197,6 +213,8 @@ def runFlask():
             'max_requests_jitter': 50,
             'timeout': 60
         }
+        if ssl_ctx:
+            _options['certfile'], _options['keyfile'] = ssl_ctx
         StandaloneApplication(app, _options).run()
 
 

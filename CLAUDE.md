@@ -7,9 +7,11 @@ Python (3.8–3.11)、Flask (API)、Redis/SSDB (存储)、APScheduler (调度)�
 
 ## 常用命令
 - 安装依赖：`pip install -r requirements.txt`
+- 生成自签 TLS 网关证书：`bash scripts/gen_gateway_cert.sh`（或 `make gen-cert`）
 - 运行代理爬取/验证调度器：`python proxyPool.py schedule`
-- 运行 API 服务器：`python proxyPool.py server`
+- 运行 API 服务器（默认 HTTPS，端口 9443）：`python proxyPool.py server`
 - 查看启用的代理源：`python proxyPool.py fetcher`
+- 查看本地开发/运维快捷命令：`make help`
 - 运行单元测试：`pytest tests/unit/`
 - 运行 API 测试：`pytest tests/api/`
 - 运行集成测试（需真实 Redis）：`pytest tests/integration/ -m integration`
@@ -63,7 +65,8 @@ tests/
   - `/all`：列出所有代理
   - `/count`：代理数量统计
   - `/delete`：通过 `?proxy=host:port` 删除指定代理
-  - 服务运行在 `HOST:PORT`（默认 `0.0.0.0:5010`），配置来自 `setting.py`。
+  - 服务运行在 `HOST:PORT`（默认 `0.0.0.0:9443`，HTTPS），配置来自 `setting.py`。
+  - 鉴权（`api/proxyApi.py:verify_token`）：设置 `AUTH_TOKEN` 后启用，仅从请求头读取（`Authorization: Bearer` / `Token`、`X-API-Token` / `X-Auth-Token` / `Api-Key`），使用 `hmac.compare_digest` 常量时间比较；不再支持 `?token=` 查询参数。TLS 由内嵌 gunicorn 直接终止（`runFlask` 注入 `certfile`/`keyfile`）。
 - **命令行入口** (`proxyPool.py`)：基于 click 的命令行工具，包含 `schedule` 和 `server` 两个子命令。
 
 ### 扩展代理源
@@ -72,7 +75,9 @@ tests/
 
 ## 关键配置
 所有运行时配置均在 `setting.py` 中：
-- `HOST`/`PORT`：API 绑定的地址和端口
+- `HOST`/`PORT`：API 绑定的地址和端口（默认 `0.0.0.0:9443`）
+- `SSL_ENABLED`：是否以 HTTPS 提供服务（默认 `True`），使用 `SSL_CERTFILE`/`SSL_KEYFILE` 指定的证书/私钥（相对路径基于项目根目录，默认 `gateway/tls.crt`、`gateway/tls.key`）。证书由 `scripts/gen_gateway_cert.sh` 生成（自签，RSA-2048，3650 天，SAN 含 `127.0.0.1`、外网 IP、可选 `GATEWAY_DOMAIN`），可随时替换为 CA 签发证书（如 Let's Encrypt）
+- `GATEWAY_DOMAIN`：可选域名，仅被 `gen_gateway_cert.sh` 用于写入证书 SAN
 - `DB_CONN`：数据库连接字符串
 - `PROXY_FETCHER_EXCLUDE`：爬取器黑名单（自动扫描 `enabled=True` 的源，排除黑名单中的）
 - `HTTP_URL`/`HTTPS_URL`：验证目标 URL

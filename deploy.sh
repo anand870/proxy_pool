@@ -60,10 +60,18 @@ if [ ! -f "$ENV_FILE" ]; then
     cat <<EOF > "$ENV_FILE"
 # Server Configuration
 HOST=0.0.0.0
-PORT=5010
+PORT=9443
 
 # API Token Authentication (Set non-empty token string to enable protection)
+# Token is read from request headers only (Authorization: Bearer <token>).
 AUTH_TOKEN=
+
+# TLS Gateway: serve HTTPS using gateway/tls.{crt,key}.
+# A self-signed cert is generated automatically by deploy.sh if missing.
+# Replace gateway/tls.crt / gateway/tls.key with a CA-signed pair (e.g. Let's
+# Encrypt) and set GATEWAY_DOMAIN to stop clients needing --cacert.
+SSL_ENABLED=true
+GATEWAY_DOMAIN=
 
 # Database Connection (Default local Redis)
 DB_CONN=redis://@127.0.0.1:6379/0
@@ -80,6 +88,20 @@ MAX_FAIL_COUNT=0
 TIMEZONE=Asia/Shanghai
 EOF
     log_info "Generated default .env configuration at $ENV_FILE"
+fi
+
+# 3b. Generate self-signed TLS gateway cert if missing
+GATEWAY_DIR="$SCRIPT_DIR/gateway"
+mkdir -p "$GATEWAY_DIR"
+if [ ! -f "$GATEWAY_DIR/tls.crt" ] || [ ! -f "$GATEWAY_DIR/tls.key" ]; then
+    log_info "Generating self-signed TLS gateway certificate..."
+    # GATEWAY_DOMAIN is picked up from .env if set (sourced in a subshell only).
+    (
+        set -a; [ -f "$ENV_FILE" ] && . "$ENV_FILE"; set +a
+        bash "$SCRIPT_DIR/scripts/gen_gateway_cert.sh"
+    ) || log_warn "Cert generation failed; HTTPS will not start until gateway/tls.{crt,key} exist."
+else
+    log_info "TLS gateway certificate already present at $GATEWAY_DIR/tls.crt"
 fi
 
 # 4. Check Redis Service

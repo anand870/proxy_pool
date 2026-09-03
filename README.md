@@ -23,7 +23,8 @@ An automated, high-performance proxy pool for web scrapers and crawlers. It auto
 
 - 🚀 **Production Ready for Cloud Free Tiers**: Optimized memory footprint (<300MB) for seamless deployment on **Google Cloud Compute Engine `e2-micro`** and **Oracle Cloud Always Free VM** instances.
 - 🏡 **Residential IP Filtering**: Filter and fetch only residential proxies on-demand (`?residential=true` or `?type=residential`).
-- 🔐 **Token-Based Authentication System**: Protect your API endpoints with configurable token authentication (`Authorization: Bearer <token>`, `X-API-Token`, or `?token=<token>`).
+- 🔐 **Token-Based Authentication System**: Protect your API endpoints with a header-only, constant-time token check (`Authorization: Bearer <token>`, `X-API-Token`, `X-Auth-Token` or `Api-Key`).
+- 🔒 **TLS Gateway**: The API serves **HTTPS on port `9443`** with a self-signed cert generated at deploy time (swap in a CA-signed cert any time) so the auth token is never sniffable in transit.
 - 🛡️ **Zero-Log Requestor Privacy**: Strict privacy protection — no client IP addresses, headers, or requestor details are ever logged or retained in log files.
 - ⚡ **Automated Scheduling & Validation**: Built-in APScheduler constantly checks proxy latency, availability, and failure thresholds.
 - 🕒 **Fresh-Only Serving**: `/get` and `/all` return only proxies that **passed their last check** and were **re-validated within `PROXY_FRESH_SECONDS`** (default 900s), newest-checked first — never stale entries.
@@ -51,12 +52,42 @@ pip install -r requirements.txt
 ### Running Locally
 
 ```bash
-# Start the proxy scheduler (fetcher & validator daemon)
-python proxyPool.py schedule
+# Generate the self-signed TLS gateway cert (once)
+make gen-cert          # or: bash scripts/gen_gateway_cert.sh
 
-# Start the Web API server
-python proxyPool.py server
+# Start the proxy scheduler (fetcher & validator daemon)
+python proxyPool.py schedule     # make scheduler
+
+# Start the Web API server (HTTPS on :9443)
+python proxyPool.py server       # make server
 ```
+
+### Make Commands
+
+A `Makefile` wraps the common local dev/ops tasks. Run `make help` for the list.
+Override any variable inline, e.g. `make health TOKEN=abc PORT=9443`.
+
+| Command | Description |
+|---------|-------------|
+| `make help` | List all available targets (default) |
+| `make install` | Install runtime dependencies (`requirements.txt`) |
+| `make install-dev` | Install runtime + test deps (`pytest`, `pytest-cov`, `fakeredis`) |
+| `make gen-cert` | Generate the self-signed TLS gateway cert. Vars: `GATEWAY_DOMAIN=`, `EXTERNAL_IP=`, `FORCE=1` |
+| `make server` | Run the API server (HTTPS on `:9443`) |
+| `make scheduler` | Run the fetch/validate scheduler |
+| `make fetchers` | List active proxy fetchers |
+| `make test` | Run unit + API tests |
+| `make test-all` | Run the full test suite |
+| `make cov` | Run tests with a coverage report |
+| `make health` | `GET /count/` against a running server (uses `--cacert gateway/tls.crt` + `TOKEN`) |
+| `make get` | `GET /get/` against a running server |
+| `make docker-up` / `make docker-down` | Build/start or stop the Docker Compose stack |
+| `make deploy` | Remote-deploy to a GCP VM. Vars: `INSTANCE_NAME=`, `ZONE=`, env `AUTH_TOKEN`, `GATEWAY_DOMAIN` |
+| `make clean` | Remove Python/test caches |
+| `make clean-cert` | Remove the generated `gateway/tls.{crt,key}` |
+
+`TOKEN` defaults to `AUTH_TOKEN` read from `.env` when present, so `make health` /
+`make get` work with no arguments once the server is running.
 
 ---
 
@@ -64,7 +95,7 @@ python proxyPool.py server
 
 ### Method 1: Deploy to Remote GCP VM from Local Machine (One-Command)
 
-Run `remote_deploy.sh` directly from your local terminal. It will connect via SSH to your running GCP `e2-micro` VM, install `git` & dependencies, configure GCP firewall rules for port `5010`, pull code, and start the service:
+Run `remote_deploy.sh` directly from your local terminal. It will connect via SSH to your running GCP `e2-micro` VM, install `git` & dependencies, configure GCP firewall rules for port `9443`, pull code, and start the service:
 
 ```bash
 # Basic usage (Target instance name: my-gcp-micro-instance, Zone: us-central1-a)
@@ -72,7 +103,12 @@ Run `remote_deploy.sh` directly from your local terminal. It will connect via SS
 
 # Deploy with custom instance name, zone, and secret AUTH_TOKEN:
 INSTANCE_NAME="my-proxy-vm" ZONE="us-central1-a" AUTH_TOKEN="my_secret_token_123" ./remote_deploy.sh
+
+# Optionally bind a real domain (adds it to the cert SAN):
+INSTANCE_NAME="my-proxy-vm" AUTH_TOKEN="..." GATEWAY_DOMAIN="proxy.example.com" ./remote_deploy.sh
 ```
+
+It opens the GCP firewall for `tcp:9443` and reports an `https://…:9443` URL.
 
 ### Method 2: Deploy Directly on Host Machine (Systemd)
 
@@ -112,9 +148,13 @@ To verify if the server is running, check process logs, or inspect port binding:
   ```bash
   sudo systemctl status proxy_pool
   ```
-- **Verify Port 5010 Binding**:
+- **Verify Port 9443 Binding**:
   ```bash
-  sudo lsof -i :5010
+  sudo lsof -i :9443
+  ```
+- **Smoke-test the HTTPS endpoint**:
+  ```bash
+  curl --cacert gateway/tls.crt -H "Authorization: Bearer $AUTH_TOKEN" https://127.0.0.1:9443/count/
   ```
 
 ### Method 3: Containerized Deployment (Docker & Docker Compose)
@@ -122,6 +162,9 @@ To verify if the server is running, check process logs, or inspect port binding:
 ```bash
 # Set your token in environment (optional)
 export AUTH_TOKEN="my_secret_token_123"
+
+# Generate the TLS gateway cert once (mounted into the container)
+make gen-cert
 
 # Build and launch with memory limits
 docker-compose up -d
@@ -137,22 +180,49 @@ Set `AUTH_TOKEN` in your environment or `.env` file to enable token protection:
 AUTH_TOKEN=my_secret_token_123
 ```
 
-When enabled, API requests must include the token via any of the following 3 formats:
+The token is read **from request headers only** and compared in constant time.
+Query-string tokens (`?token=`) are **not** accepted — they leak into URLs, proxy
+logs and referrers. Always run the API over HTTPS (see [TLS Gateway](#tls-gateway))
+so the header cannot be sniffed in transit.
 
 1. **HTTP Authorization Header** *(Recommended)*:
    ```bash
-   curl -H "Authorization: Bearer my_secret_token_123" "http://<SERVER_IP>:5010/get/"
+   curl --cacert gateway/tls.crt -H "Authorization: Bearer my_secret_token_123" "https://<SERVER_IP>:9443/get/"
    ```
-2. **Custom Header**:
+2. **Custom Header** (`X-API-Token`, `X-Auth-Token` or `Api-Key`):
    ```bash
-   curl -H "X-API-Token: my_secret_token_123" "http://<SERVER_IP>:5010/get/"
-   ```
-3. **URL Query Parameter**:
-   ```bash
-   curl "http://<SERVER_IP>:5010/get/?token=my_secret_token_123"
+   curl --cacert gateway/tls.crt -H "X-API-Token: my_secret_token_123" "https://<SERVER_IP>:9443/get/"
    ```
 
 *If the token is missing or invalid, the API responds with `HTTP 401 Unauthorized`.*
+
+---
+
+## TLS Gateway
+
+The API server terminates TLS itself (via the embedded gunicorn) so the auth token
+is never sent in cleartext. It listens on **HTTPS port `9443`** by default.
+
+`deploy.sh` auto-generates a **self-signed** cert on first run
+(`scripts/gen_gateway_cert.sh` → `gateway/tls.crt` + `gateway/tls.key`, RSA-2048,
+10-year, SAN = `127.0.0.1` + the VM external IP + optional `GATEWAY_DOMAIN`).
+Generate it manually with:
+
+```bash
+make gen-cert                       # localhost + auto-detected external IP
+GATEWAY_DOMAIN=proxy.example.com make gen-cert
+```
+
+Clients must trust that cert — pass `--cacert gateway/tls.crt` to `curl`
+(or `-k` to skip verification for a quick test).
+
+**Switching to a CA-signed cert (Let's Encrypt etc.):** point a DNS name at the VM,
+set `GATEWAY_DOMAIN` in `.env`, and drop the real `tls.crt` / `tls.key` into
+`gateway/`. Restart the service — clients then need no `--cacert`.
+
+`gateway/` and `.env` are git-ignored; the private key never leaves the host.
+
+Set `SSL_ENABLED=false` to fall back to plain HTTP (not recommended).
 
 ---
 
@@ -162,27 +232,27 @@ Filter and fetch proxies marked as residential or datacenter IPs using `?residen
 
 - **Fetch a random residential proxy**:
   ```bash
-  curl "http://127.0.0.1:5010/get/?residential=true"
+  curl "https://127.0.0.1:9443/get/?residential=true"
   ```
 - **Fetch a random non-residential (datacenter) proxy**:
   ```bash
-  curl "http://127.0.0.1:5010/get/?residential=false"
+  curl "https://127.0.0.1:9443/get/?residential=false"
   ```
 - **Pop and delete a residential proxy**:
   ```bash
-  curl "http://127.0.0.1:5010/pop/?residential=true"
+  curl "https://127.0.0.1:9443/pop/?residential=true"
   ```
 - **List residential proxies with quantity limit**:
   ```bash
-  curl "http://127.0.0.1:5010/all/?residential=true&num=5"
+  curl "https://127.0.0.1:9443/all/?residential=true&num=5"
   ```
 - **List non-residential proxies**:
   ```bash
-  curl "http://127.0.0.1:5010/all/?residential=false"
+  curl "https://127.0.0.1:9443/all/?residential=false"
   ```
 - **Proxy count statistics (including residential count)**:
   ```bash
-  curl "http://127.0.0.1:5010/count/"
+  curl "https://127.0.0.1:9443/count/"
   # Response: {"http_type": {"http": 10, "https": 5}, "residential": 6, "source": {...}, "count": 15}
   ```
 
@@ -229,15 +299,17 @@ To ensure complete requestor anonymity:
 ```python
 import requests
 
-API_URL = "http://127.0.0.1:5010"
+API_URL = "https://127.0.0.1:9443"
 HEADERS = {"Authorization": "Bearer my_secret_token_123"}
+# Self-signed gateway cert: point verify at gateway/tls.crt (or a real CA bundle).
+VERIFY = "gateway/tls.crt"
 
 def get_residential_proxy():
-    response = requests.get(f"{API_URL}/get/", params={"residential": "true"}, headers=HEADERS)
+    response = requests.get(f"{API_URL}/get/", params={"residential": "true"}, headers=HEADERS, verify=VERIFY)
     return response.json().get("proxy")
 
 def delete_proxy(proxy):
-    requests.get(f"{API_URL}/delete/", params={"proxy": proxy}, headers=HEADERS)
+    requests.get(f"{API_URL}/delete/", params={"proxy": proxy}, headers=HEADERS, verify=VERIFY)
 
 def fetch_target_page(url):
     retry_count = 5
@@ -325,8 +397,12 @@ python source_health.py --no-validate  # fetch only, skip validation
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HOST` | `0.0.0.0` | API server binding address |
-| `PORT` | `5010` | API server port |
+| `PORT` | `9443` | API server port (HTTPS) |
 | `AUTH_TOKEN` | `""` | API token authentication (empty = disabled) |
+| `SSL_ENABLED` | `true` | Serve HTTPS using `gateway/tls.crt` + `gateway/tls.key` |
+| `SSL_CERTFILE` | `gateway/tls.crt` | TLS cert path (relative to project root or absolute) |
+| `SSL_KEYFILE` | `gateway/tls.key` | TLS private key path |
+| `GATEWAY_DOMAIN` | `""` | Optional DNS name added to the generated cert's SAN |
 | `DB_CONN` | `redis://:pwd@127.0.0.1:6379/0` | DB connection string (Redis or SSDB) |
 | `TABLE_NAME` | `use_proxy` | Database table / hash key name |
 | `GUNICORN_WORKERS` | `2` | Gunicorn worker processes (optimized for 1GB RAM) |
